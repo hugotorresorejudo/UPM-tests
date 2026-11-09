@@ -1,0 +1,441 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Test Energy Storage</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500;600&family=IBM+Plex+Sans:wght@400;500;600;700&display=swap" rel="stylesheet">
+<style>
+/* Layout: cabecera blanca con marcador → pestañas Temas/Exámenes → barra fija de controles → columna de tarjetas (~820px). Tema único claro. */
+:root {
+  --bg: #ffffff;
+  --page: #edf2f9;
+  --panel: #f3f7fd;
+  --opt: #eef4fd;
+  --opt-hover: #dfeafb;
+  --line-strong: #c5d4ea;
+  --ink: #14233d;
+  --muted: #5b6b85;
+  --line: #d9e3f1;
+  --blue: #1d5bbf;
+  --blue-dark: #12408c;
+  --blue-soft: #e5eefb;
+  --orange: #f07c1c;
+  --orange-dark: #c55e0a;
+  --orange-soft: #fff0e2;
+  --ok: #1e7f4f;
+  --ok-soft: #e4f5ec;
+  --bad: #c62f22;
+  --bad-soft: #fde9e6;
+  --font-body: "IBM Plex Sans", "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+  --font-mono: "IBM Plex Mono", ui-monospace, Consolas, monospace;
+  color-scheme: light;
+}
+* { box-sizing: border-box; }
+html, body { margin: 0; background: var(--page); color: var(--ink); }
+body { font: 16px/1.55 var(--font-body); }
+.top { background: var(--bg); border-bottom: 1px solid var(--line-strong); }
+.wrap { max-width: 840px; margin: 0 auto; padding: 0 16px; }
+header { padding: 28px 0 18px; display: grid; gap: 8px; }
+.eyebrow { font: 600 12px/1.3 var(--font-mono); letter-spacing: .05em; text-transform: uppercase; color: var(--orange-dark); }
+h1 { font: 700 clamp(26px, 5vw, 34px)/1.15 var(--font-body); margin: 0; color: var(--blue-dark); text-wrap: balance; }
+h2 { font: 600 18px/1.3 var(--font-body); margin: 0; color: var(--blue-dark); text-wrap: balance; }
+.sub { color: var(--muted); margin: 0; max-width: 68ch; }
+.tabs { display: flex; gap: 4px; margin-top: 8px; }
+.tab { font: 600 15px/1 var(--font-body); padding: 12px 18px; border: 1px solid var(--line); border-bottom: 0; border-radius: 10px 10px 0 0; background: var(--panel); color: var(--muted); cursor: pointer; }
+.tab[aria-selected="true"] { background: var(--page); color: var(--blue-dark); box-shadow: inset 0 3px 0 var(--orange); }
+.score { display: grid; grid-template-columns: repeat(auto-fit, minmax(120px, 1fr)); gap: 10px; }
+.tile { background: var(--panel); border: 1px solid var(--line); border-radius: 10px; padding: 10px 14px; }
+.tile b { display: block; font: 600 22px/1.2 var(--font-mono); font-variant-numeric: tabular-nums; color: var(--blue-dark); }
+.tile.hl b { color: var(--orange-dark); }
+.tile span { font-size: 13px; color: var(--muted); }
+.progress { height: 6px; background: var(--line); border-radius: 3px; overflow: hidden; }
+.progress i { display: block; height: 100%; background: var(--orange); transition: width .2s; }
+main { padding: 18px 0 80px; display: grid; gap: 16px; }
+.panel { background: var(--bg); border: 1px solid var(--line-strong); box-shadow: 0 1px 3px rgba(20,35,61,.06); border-radius: 12px; padding: 14px 16px; display: grid; gap: 10px; }
+.exams { display: grid; grid-template-columns: repeat(auto-fit, minmax(230px, 1fr)); gap: 12px; }
+.exam { background: var(--opt); border: 1px solid var(--line-strong); border-radius: 12px; padding: 14px; display: grid; gap: 6px; align-content: start; cursor: pointer; text-align: left; font: inherit; color: inherit; }
+.exam:hover { border-color: var(--blue); }
+.exam[aria-pressed="true"] { border: 2px solid var(--blue); box-shadow: 0 0 0 3px var(--blue-soft); }
+.exam .d { font: 500 12px/1.3 var(--font-mono); color: var(--orange-dark); }
+.exam .w { font-size: 13px; color: var(--muted); }
+.exam .n { font: 600 13px/1 var(--font-mono); color: var(--blue); }
+.blocks { display: grid; gap: 6px; }
+.brow { display: grid; grid-template-columns: minmax(0, 1fr) 64px 110px; gap: 10px; align-items: center; font-size: 14px; }
+.brow .name { overflow-wrap: anywhere; }
+.brow .num { font-family: var(--font-mono); font-variant-numeric: tabular-nums; text-align: right; color: var(--muted); }
+.meter { height: 6px; background: var(--bg); border: 1px solid var(--line); border-radius: 3px; overflow: hidden; }
+.meter i { display: block; height: 100%; background: var(--blue); }
+.bar { position: sticky; top: 0; z-index: 5; background: rgba(255,255,255,.97); box-shadow: 0 2px 8px rgba(20,35,61,.08); backdrop-filter: blur(4px); border-bottom: 1px solid var(--line); padding: 10px 0; }
+.bar .wrap { display: grid; gap: 8px; }
+.row { display: flex; flex-wrap: wrap; gap: 6px; align-items: center; }
+.label { font-size: 12px; color: var(--muted); margin-right: 2px; }
+.chip, .btn { font: 500 13px/1 var(--font-body); border: 1px solid var(--line); background: var(--bg); color: var(--ink); border-radius: 999px; padding: 8px 12px; cursor: pointer; }
+.chip:hover, .btn:hover { border-color: var(--blue); }
+.chip[aria-pressed="true"] { background: var(--blue); border-color: var(--blue); color: #fff; }
+.btn { border-radius: 8px; }
+.btn[aria-pressed="true"] { background: var(--blue-soft); border-color: var(--blue); color: var(--blue-dark); }
+.btn.primary { background: var(--orange); color: #fff; border-color: var(--orange); font-weight: 600; }
+.btn.primary:hover { background: var(--orange-dark); }
+.btn.blue { background: var(--blue); color: #fff; border-color: var(--blue); font-weight: 600; }
+.seg { display: inline-flex; border: 1px solid var(--line); border-radius: 8px; overflow: hidden; }
+.seg button { border: 0; background: var(--bg); color: var(--ink); font: 500 13px/1 var(--font-body); padding: 8px 12px; cursor: pointer; }
+.seg button + button { border-left: 1px solid var(--line); }
+.seg button[aria-pressed="true"] { background: var(--blue); color: #fff; }
+select { font: 500 13px/1 var(--font-body); padding: 7px 8px; border: 1px solid var(--line); border-radius: 8px; background: var(--bg); color: var(--ink); }
+button:focus-visible, select:focus-visible { outline: 2px solid var(--orange); outline-offset: 2px; }
+.banner { display: flex; flex-wrap: wrap; gap: 8px 16px; align-items: center; justify-content: space-between; background: var(--blue-soft); border: 1px solid var(--line); border-left: 4px solid var(--blue); border-radius: 10px; padding: 10px 14px; font-size: 14px; }
+.banner b { color: var(--blue-dark); }
+.timer { font: 600 14px/1 var(--font-mono); color: var(--orange-dark); font-variant-numeric: tabular-nums; }
+.list { display: grid; gap: 14px; }
+.card { background: var(--bg); border: 1px solid var(--line-strong); border-radius: 14px; padding: 18px 20px 20px; display: grid; gap: 14px; scroll-margin-top: 210px; box-shadow: 0 1px 2px rgba(20,35,61,.05), 0 4px 14px rgba(20,35,61,.06); }
+.card:focus-visible { outline: 2px solid var(--orange); outline-offset: 2px; }
+.card.ok { border-left: 5px solid var(--ok); }
+.card.bad { border-left: 5px solid var(--bad); }
+.card.pending { border-left: 5px solid var(--orange); }
+.meta { display: flex; gap: 10px; flex-wrap: wrap; align-items: center; font: 500 12px/1 var(--font-mono); color: var(--muted); }
+.qnum { display: inline-flex; align-items: baseline; gap: 1px; min-width: 40px; padding: 9px 11px; border-radius: 10px; background: var(--blue); color: #fff; font: 700 20px/1 var(--font-body); font-variant-numeric: tabular-nums; }
+.qnum small { font-size: 12px; font-weight: 500; opacity: .8; margin-left: 2px; }
+.tag { background: var(--blue-soft); color: var(--blue-dark); padding: 4px 8px; border-radius: 6px; }
+.tag.miss { background: var(--orange-soft); color: var(--orange-dark); }
+.tag.star { background: var(--orange); color: #fff; }
+.q { font-weight: 600; font-size: 17px; line-height: 1.5; margin: 0; }
+.fig { margin: 0; background: #f8fbff; border: 1px solid var(--line); border-radius: 10px; padding: 10px; overflow-x: auto; }
+.fig svg { display: block; width: 100%; max-width: 560px; height: auto; margin: 0 auto; }
+.fig figcaption { font-size: 12px; color: var(--muted); margin-top: 6px; text-align: center; }
+.fig text { fill: var(--ink); font: 12px var(--font-body); }
+.fig .t-s { font-size: 11px; fill: var(--muted); }
+.fig .t-b { font-weight: 600; }
+.fig .ax { stroke: var(--ink); stroke-width: 1.2; fill: none; }
+.fig .grid { stroke: var(--line); stroke-width: 1; }
+.fig .b { stroke: var(--blue); stroke-width: 2.4; fill: none; }
+.fig .b2 { stroke: var(--blue-dark); stroke-width: 2.4; fill: none; stroke-dasharray: 2 3; }
+.fig .o { stroke: var(--orange); stroke-width: 2.4; fill: none; }
+.fig .g { stroke: var(--muted); stroke-width: 1.6; fill: none; stroke-dasharray: 6 4; }
+.fig .g2 { stroke: #7a8aa3; stroke-width: 2.4; fill: none; }
+.fig .box { fill: #fff; stroke: var(--ink); stroke-width: 1.2; }
+.fig .bf { fill: var(--blue-soft); stroke: var(--blue); stroke-width: 1.5; }
+.fig .of { fill: var(--orange-soft); stroke: var(--orange); stroke-width: 1.5; }
+.fig .of2 { fill: #f9c79c; stroke: var(--orange-dark); stroke-width: 1.5; }
+.fig .bfl { fill: rgba(29,91,191,.12); stroke: var(--blue); stroke-width: 1.2; }
+.fig .ofl { fill: rgba(240,124,28,.18); stroke: var(--orange); stroke-width: 1.2; }
+.fig .soil { fill: #fbf7f1; stroke: var(--line); }
+.fig .clay { fill: #e8dccb; stroke: none; }
+.fig .pt { fill: var(--orange); stroke: #fff; stroke-width: 1.5; }
+.fig .arh { fill: var(--ink); }
+.opts { display: grid; gap: 8px; }
+.opt { text-align: left; font: 15px/1.45 var(--font-body); color: var(--ink); background: var(--opt); border: 1px solid var(--line-strong); border-radius: 10px; padding: 10px 14px 10px 10px; cursor: pointer; display: grid; grid-template-columns: 32px 1fr; gap: 10px; align-items: center; box-shadow: 0 1px 0 rgba(20,35,61,.06); }
+.opt .k { display: grid; place-items: center; width: 30px; height: 30px; border-radius: 50%; background: var(--bg); border: 1.5px solid var(--blue); font: 700 14px/1 var(--font-body); color: var(--blue-dark); }
+.opt:hover:not([disabled]) { border-color: var(--blue); background: var(--opt-hover); }
+.opt.sel { border-color: var(--blue); background: var(--blue-soft); box-shadow: inset 0 0 0 1px var(--blue); }
+.opt.sel .k { background: var(--blue); color: #fff; }
+.opt.right { border-color: var(--ok); background: var(--ok-soft); box-shadow: inset 0 0 0 1px var(--ok); }
+.opt.right .k { background: var(--ok); border-color: var(--ok); color: #fff; }
+.opt.wrong { border-color: var(--bad); background: var(--bad-soft); box-shadow: inset 0 0 0 1px var(--bad); }
+.opt.wrong .k { background: var(--bad); border-color: var(--bad); color: #fff; }
+.opt[disabled] { cursor: default; }
+.exp { font-size: 14px; background: var(--panel); border-radius: 10px; padding: 12px 14px; border: 1px solid var(--line); border-left: 4px solid var(--blue); }
+.exp .src { display: block; margin-top: 6px; font: 12px/1.4 var(--font-mono); color: var(--muted); }
+.verdict { font-weight: 600; }
+.verdict.ok { color: var(--ok); } .verdict.bad { color: var(--bad); } .verdict.na { color: var(--orange-dark); }
+.empty { color: var(--muted); padding: 24px 0; }
+.foot { display: flex; gap: 10px; flex-wrap: wrap; }
+.hint { font-size: 13px; color: var(--muted); margin: 0; }
+kbd { font: 12px var(--font-mono); border: 1px solid var(--line); border-bottom-width: 2px; border-radius: 4px; padding: 0 4px; background: var(--bg); }
+@media (max-width: 480px) { .score { grid-template-columns: repeat(4, minmax(0,1fr)); gap: 6px; } .tile { padding: 6px 8px; } .tile b { font-size: 15px; } .tile span { font-size: 10px; } .brow { grid-template-columns: 1fr 56px; } .brow .meter { grid-column: 1 / -1; } .tab { padding: 10px 12px; font-size: 14px; } }
+@media (prefers-reduced-motion: reduce) { * { transition: none !important; scroll-behavior: auto !important; } }
+</style>
+</head>
+<body>
+<div class="top">
+  <div class="wrap">
+    <header>
+      <div class="eyebrow">Máster en Ingeniería de la Energía · UPM · 2026-27</div>
+      <h1>Test de Energy Storage</h1>
+      <p class="sub">Preguntas de los 10 temas de la guía de aprendizaje, redactadas a partir de las presentaciones y el libro de consulta de Moodle. Practica por examen (preguntas mezcladas de todos los temas que entran) o tema a tema.</p>
+    </header>
+    <div class="tabs" role="tablist">
+      <button type="button" class="tab" role="tab" id="tabExam" aria-selected="true">Por exámenes</button>
+      <button type="button" class="tab" role="tab" id="tabTopic" aria-selected="false">Por temas</button>
+    </div>
+  </div>
+</div>
+
+<div class="wrap" id="setup"></div>
+
+<div class="bar">
+  <div class="wrap">
+    <div class="score">
+      <div class="tile"><b id="sAns">0/0</b><span>Respondidas</span></div>
+      <div class="tile"><b id="sOk">–</b><span>Aciertos / fallos</span></div>
+      <div class="tile hl"><b id="sPct">–</b><span id="sPctLbl">Nota sobre 10</span></div>
+      <div class="tile"><b id="sTime" class="timer">00:00</b><span>Tiempo</span></div>
+    </div>
+    <div class="progress" aria-hidden="true"><i id="prog" style="width:0%"></i></div>
+    <div class="row">
+      <span class="label">Corrección</span>
+      <div class="seg" role="group" aria-label="Corrección">
+        <button type="button" id="mStudy">Al momento</button>
+        <button type="button" id="mExam">Al final</button>
+      </div>
+      <button type="button" class="btn" id="bPen" aria-pressed="false">Penalizar fallos (−1/3)</button>
+      <button type="button" class="btn" id="bWrong" aria-pressed="false">Solo falladas</button>
+      <button type="button" class="btn" id="bMiss" aria-pressed="false">Falladas alguna vez</button>
+      <button type="button" class="btn" id="bNext">Siguiente sin responder ↓</button>
+    </div>
+  </div>
+</div>
+
+<div class="wrap">
+  <main>
+    <div class="banner" id="banner"></div>
+    <div class="list" id="list"></div>
+    <div class="foot">
+      <button type="button" class="btn primary" id="bGrade" hidden>Corregir</button>
+      <button type="button" class="btn blue" id="bRestart">Nuevo intento (mezclar de nuevo)</button>
+      <button type="button" class="btn" id="bClearHist">Borrar historial de fallos</button>
+    </div>
+    <p class="hint">Atajos en la tarjeta enfocada: <kbd>1</kbd>–<kbd>4</kbd> o <kbd>A</kbd>–<kbd>D</kbd> para responder. El progreso se guarda en este navegador.</p>
+  </main>
+</div>
+
+<script>
+const BLOCKS = [{"id": "intro", "short": "1 · Introducción", "name": "1. Introducción: necesidad, clasificación y costes (LCOS, TRL)"}, {"id": "tes", "short": "2 · Térmico", "name": "2. Almacenamiento térmico (sensible, latente, CSP)"}, {"id": "bat", "short": "3 · Baterías", "name": "3. Baterías (Pb-ácido, Li-ion, Na-ion, flujo, Na-S, ZEBRA)"}, {"id": "sc", "short": "4 · Supercond.", "name": "4. Supercondensadores"}, {"id": "h2", "short": "5 · Vectores / H₂", "name": "5. Almacenamiento químico: hidrógeno y marco regulatorio"}, {"id": "tq", "short": "6 · Termoquímico", "name": "6. Almacenamiento termoquímico"}, {"id": "caes", "short": "7 · CAES", "name": "7. Aire comprimido (CAES)"}, {"id": "laes", "short": "8 · LAES", "name": "8. Aire líquido (LAES)"}, {"id": "fw", "short": "9 · Volantes", "name": "9. Volantes de inercia"}, {"id": "app", "short": "10 · Aplicaciones", "name": "10. Aplicaciones y casos de dimensionado"}];
+const EXAMS = [{"id": "t1", "name": "Test 1 (PEC 1)", "date": "29/10/2026 · test online", "weight": "Tests 1 y 2 + trabajo: 40%", "desc": "General, térmico, termoquímico, baterías y CAES", "blocks": ["intro", "tes", "tq", "bat", "caes"]}, {"id": "t2", "name": "Test 2", "date": "26/11/2026 · test online", "weight": "Tests 1 y 2 + trabajo: 40%", "desc": "LAES, volantes, supercondensadores, vectores energéticos (H₂) y aplicaciones", "blocks": ["laes", "fw", "sc", "h2", "app"]}, {"id": "fin", "name": "Examen final", "date": "Enero 2027 · presencial", "weight": "60% (o 100% sin evaluación continua)", "desc": "Todo el temario", "blocks": ["intro", "tes", "bat", "sc", "h2", "tq", "caes", "laes", "fw", "app"]}];
+const QS = [{"b": "intro", "q": "Según el tema de introducción, ¿qué dos problemas resuelve principalmente el almacenamiento en la transición energética?", "o": ["El desacoplamiento entre generación y demanda (medio-largo plazo) y la regulación/estabilidad de red", "La reducción del coste de la generación renovable y la eliminación de pérdidas en transporte", "La sustitución de la generación síncrona y la eliminación de los mercados de ajuste", "El aumento del factor de capacidad de las nucleares y la reducción de la demanda punta"], "a": 0, "e": "El almacenamiento soluciona el desacoplamiento temporal generación-demanda y la regulación de la red (calidad de potencia y estabilidad).", "s": "Tema 1: Introduction (Abánades)", "x": ["t1", "fin"]}, {"b": "intro", "q": "Según la tabla \"Energy storage today\", ¿qué tecnología acumula hoy la mayor capacidad de energía instalada (GWh)?", "o": ["Baterías Li-ion (~580 GWh)", "Bombeo hidráulico (~1.600+ GWh)", "Sales térmicas (~21 GWh)", "CAES (~10 GWh)"], "a": 1, "e": "El bombeo supera los 1.600 GWh frente a ~580 GWh de Li-ion, aunque en potencia (GW) las baterías ya la igualan o superan (~240 GW frente a ~210 GW).", "s": "Tema 1, tabla Energy storage today", "x": ["t1", "fin"]}, {"b": "intro", "q": "En el cálculo del LCOS, ¿qué representa FEC?", "o": ["El factor de emisiones de carbono del sistema", "El número de ciclos completos de carga-descarga al año: energía total intercambiada dividida por la capacidad", "La fracción de energía cargada que se pierde por autodescarga", "El coste fijo de explotación por kW instalado"], "a": 1, "e": "FEC = full equivalent cycles: energía anual intercambiada / capacidad de almacenamiento. Junto con RTE y degradación determina la energía descargada en el denominador del LCOS.", "s": "Tema 1, diapositiva Storage cost", "x": ["t1", "fin"]}, {"b": "intro", "q": "Un sistema de 40 MWh con potencia nominal de descarga de 10 MW realiza 300 ciclos completos al año. ¿Cuántas horas equivalentes a plena potencia de descarga opera al año?", "o": ["300 h", "750 h", "1.200 h", "4.000 h"], "a": 2, "e": "E<sub>des<\/sub> = n<sub>FEC<\/sub>·E<sub>sto<\/sub> = 300·40 = 12.000 MWh = t<sub>n<\/sub>·W<sub>des<\/sub> → t<sub>n<\/sub> = 12.000/10 = 1.200 h.", "s": "Libro de consulta, ec. 1.5–1.6", "x": ["t1", "fin"]}, {"b": "intro", "q": "Según la tabla de costes del libro de consulta, ¿qué tecnología tiene el coste por unidad de capacidad energética ($/MWh) más alto, aunque su coste por potencia ($/kW) sea bajo?", "o": ["Bombeo hidráulico", "CAES en caverna", "Supercondensadores", "Batería de ion litio"], "a": 2, "e": "Supercondensadores: ~74.480 $/MWh de capacidad frente a ~939 $/kW de instalación. Son dispositivos de mucha potencia y poca energía.", "s": "Libro de consulta, Cuadro 1.1", "x": ["t1", "fin"]}, {"b": "intro", "q": "En la escala TRL usada en la asignatura, ¿qué nivel corresponde a una tecnología demostrada a escala razonable pero aún no comercial?", "o": ["TRL 3", "TRL 6", "TRL 9", "TRL 1"], "a": 1, "e": "TRL 9 es explotación comercial plena; TRL 6 es la demostración precompetitiva a escala representativa. Entre 6 y 9: maduras técnicamente pero sin viabilidad económica clara.", "s": "Libro de consulta, apdo. 1.3", "x": ["t1", "fin"]}, {"b": "intro", "q": "¿Qué diferencia al LCOS del LCOE tal como se define en los temas de CAES/LAES?", "o": ["El LCOS incluye los costes de desmantelamiento y el LCOE no", "El LCOS no incluye el coste de compra de la electricidad de carga (C<sub>elec<\/sub> = 0), solo el coste de almacenarla", "El LCOS se expresa en €/kW y el LCOE en €/MWh", "El LCOS no descuenta los flujos a valor presente"], "a": 1, "e": "El LCOS evalúa el coste de la energía y de almacenarla sin considerar la compra de electricidad de carga; en el LCOE ese término (energía · precio) sí entra.", "s": "Tema 3 CAES y Tema 4 LAES, Costs: LCOS", "x": ["t1", "fin"]}, {"b": "tes", "q": "¿Cuáles son las tres formas de almacenamiento térmico y su parámetro característico?", "o": ["Sensible (c<sub>p<\/sub>), latente (h<sub>pc<\/sub>) y termoquímico (h<sub>r<\/sub>)", "Sensible (h<sub>r<\/sub>), latente (c<sub>p<\/sub>) y termoquímico (h<sub>pc<\/sub>)", "Convectivo (h), conductivo (k) y radiativo (ε)", "Directo, indirecto y termoclina"], "a": 0, "e": "Q = m·c<sub>p<\/sub>·ΔT (sensible), Q = m·h<sub>pc<\/sub> (latente, cambio de fase), Q = m·h<sub>r<\/sub> (termoquímico, reacción reversible).", "s": "Thermal Storage 1 (E. Alonso)", "x": ["t1", "fin"]}, {"b": "tes", "q": "Para almacenar 1 TJ, el volumen aproximado de medio que se cita es 1 m³ (sensible), 0,2 m³ (latente) y 0,05 m³ (termoquímico). ¿Qué conclusión es correcta?", "o": ["La densidad energética crece de sensible a latente a termoquímico", "El almacenamiento sensible es el más compacto", "Latente y termoquímico tienen la misma densidad energética", "La densidad energética no depende del tipo de TES"], "a": 0, "e": "El termoquímico es ~20 veces más compacto que el sensible; el latente ~5 veces.", "s": "Thermal Storage 1, Characteristics", "x": ["t1", "fin"]}, {"b": "tes", "q": "Un TES entrega 1 MJ uniformemente durante 1 h. ¿Cuál es su potencia de descarga?", "o": ["1 kW", "277 W", "3,6 kW", "16,7 W"], "a": 1, "e": "P = 10⁶ J / 3.600 s ≈ 277 W. Por eso la tasa de transferencia de calor con el HTF es un requisito clave.", "s": "Thermal Storage 1, diapositiva 9", "x": ["t1", "fin"]}, {"b": "tes", "q": "¿Cómo se define la eficiencia de almacenamiento η<sub>st<\/sub> de un TES (proyecto SFERA III)?", "o": ["Energía extraída por el HTF en la descarga / energía aportada por el HTF en la carga", "Energía eléctrica producida / energía solar incidente", "Exergía almacenada / energía almacenada", "Temperatura de descarga / temperatura de carga"], "a": 0, "e": "η<sub>st<\/sub> = E<sub>d<\/sub>/E<sub>ch<\/sub>.", "s": "Thermal Storage 1, Efficiency", "x": ["t1", "fin"]}, {"b": "tes", "q": "En un sistema de almacenamiento sensible \"directo\":", "o": ["El fluido caloportador (HTF) y el medio de almacenamiento son el mismo", "El medio caliente y el frío están siempre en tanques separados", "Se usa obligatoriamente un intercambiador de calor intermedio", "El medio de almacenamiento es siempre sólido"], "a": 0, "e": "Directo: HTF = medio de almacenamiento. Indirecto: son distintos (p. ej. Andasol, aceite térmico + sales). Termoclina y dos tanques es otra clasificación (mismo o distinto recinto).", "s": "Thermal Storage 1, Sensible heat storage classification", "x": ["t1", "fin"]}, {"b": "tes", "q": "En una termoclina de lecho mixto (sólido + líquido) con porosidad ε, la capacidad térmica volumétrica es:", "o": ["ε·ρ<sub>l<\/sub>c<sub>p,l<\/sub>ΔT + (1−ε)·ρ<sub>s<\/sub>c<sub>p,s<\/sub>ΔT", "(1−ε)·ρ<sub>l<\/sub>c<sub>p,l<\/sub>ΔT + ε·ρ<sub>s<\/sub>c<sub>p,s<\/sub>ΔT", "ρ<sub>l<\/sub>c<sub>p,l<\/sub>ΔT / ε", "ε·(ρ<sub>l<\/sub>+ρ<sub>s<\/sub>)·c<sub>p<\/sub>ΔT"], "a": 0, "e": "El líquido ocupa la fracción de huecos ε y el sólido (1−ε). Si solo hay sólido y el fluido es aire, queda (1−ε)·ρ<sub>s<\/sub>c<sub>p,s<\/sub>ΔT.", "s": "Thermal Storage 1, Thermoclines", "d": "thermocline", "fc": "Tanque termoclino: la franja de transición separa la zona caliente (arriba) de la fría (abajo).", "x": ["t1", "fin"]}, {"b": "tes", "q": "Lecho de cantos rodados: ρ<sub>bulk<\/sub> = 2.700 kg/m³, ε = 0,45, V = 20 m³, c<sub>p<\/sub> = 1.020 J/kg·K, T<sub>máx<\/sub> = 550 ºC, T<sub>amb<\/sub> = 20 ºC, η = 0,5. ¿Energía útil almacenada?", "o": ["≈ 3 GJ", "≈ 8 GJ", "≈ 16 GJ", "≈ 54 GJ"], "a": 1, "e": "E = 2.700·(1−0,45)·20·1.020·(550−20)·0,5 ≈ 8,0·10⁹ J = 8 GJ. Con t<sub>mín<\/sub> = 20 h, P<sub>máx<\/sub> ≈ 111,5 kW.", "s": "Thermal Storage 1, ejercicio industrial (diap. 46)", "x": ["t1", "fin"]}, {"b": "tes", "q": "Pasteurización: agua a 70 ºC, 0,5 kg/s, 8 h/día, T<sub>amb<\/sub> = 20 ºC, c<sub>p<\/sub> = 4.180 J/kg·K. ¿Energía diaria y potencia requeridas?", "o": ["3,01 GJ y 104,5 kW", "39,2 MJ y 3,6 kW", "3,6 TJ y 200 MW", "8 GJ y 111,5 kW"], "a": 0, "e": "E = 0,5·4.180·50·8·3.600 ≈ 3,01·10⁹ J; P = E/(8·3.600 s) ≈ 104,5 kW. El lecho de cantos rodados (8 GJ, 111,5 kW, 550 ºC) cubre esta demanda.", "s": "Thermal Storage 1, diap. 42", "x": ["t1", "fin"]}, {"b": "tes", "q": "Para el ciclo Rankine (480 ºC, turbina de 200 MW, 5 h/día → 3,6 TJ), ¿qué TES del ejercicio sirve?", "o": ["El lecho de rocas volcánicas (54 GJ, 887 kW)", "El lecho de cantos rodados (8 GJ)", "La termoclina de agua (4,4 GJ)", "Ninguno: todos son insuficientes en energía y potencia"], "a": 3, "e": "3,6 TJ y 200 MW superan con mucho la capacidad de cualquiera de los tres (el mayor da 54 GJ y 887 kW). En el caso de la esterilización (39 MJ, 3,6 kW) el problema es el contrario: todos quedan sobredimensionados.", "s": "Thermal Storage 1, diap. 49–51", "x": ["t1", "fin"]}, {"b": "tes", "q": "La \"Solar Salt\" de los sistemas de dos tanques en CSP es:", "o": ["60% NaNO₃ – 40% KNO₃", "40% NaNO₃ – 60% KNO₃", "Una mezcla eutéctica de NaCl y KCl", "Hitec: NaNO₃–KNO₃–NaNO₂"], "a": 0, "e": "60% nitrato sódico – 40% nitrato potásico. El volumen de almacenamiento es el doble del volumen de fluido (un tanque caliente y uno frío).", "s": "Thermal Storage 1, Two-tank in CSP plants", "x": ["t1", "fin"]}, {"b": "tes", "q": "Una central CSP de 50 MW en bloque de potencia tiene un campo solar que entrega 100 MW térmicos al receptor. ¿Cuál es su múltiplo solar y qué efecto tiene el TES?", "o": ["SM = 0,5; el TES reduce el factor de capacidad", "SM = 2; el exceso se almacena y aumenta el factor de capacidad", "SM = 2; el TES aumenta la eficiencia del bloque de potencia", "SM = 1; el TES no influye"], "a": 1, "e": "SM = potencia del campo solar / potencia nominal del receptor = 100/50 = 2. Para subir el CF hay que aumentar a la vez SM y capacidad de TES; para cada capacidad de TES existe un SM que minimiza el LCOE.", "s": "Thermal Storage 2, CSP", "d": "csp_sm", "fc": "Central CSP con TES: el campo solar se sobredimensiona (SM = 2) para cargar el almacenamiento.", "x": ["t1", "fin"]}, {"b": "tes", "q": "¿Qué tecnología CSP alcanza los mayores ratios de concentración (~1.000–3.000)?", "o": ["Colector cilindroparabólico", "Reflector lineal Fresnel", "Torre de receptor central", "Disco parabólico"], "a": 3, "e": "Cilindroparabólico ~50–90 (150–550 ºC), Fresnel ~10–200, torre ~300–1.000 (500–1.000 ºC), disco ~1.000–3.000 (650–800 ºC).", "s": "Thermal Storage 2, CSP types", "x": ["t1", "fin"]}, {"b": "tes", "q": "¿Qué afirmación sobre Gemasolar es correcta?", "o": ["Es cilindroparabólica con aceite térmico y almacenamiento indirecto", "Primera central de receptor central con almacenamiento: sales como fluido del receptor, dos tanques directos (290 → 565 ºC), 15 h", "Es la central con más horas de almacenamiento del mundo (17,5 h)", "Usa almacenamiento en termoclina de rocas"], "a": 1, "e": "Gemasolar (Sevilla, 2011, 20 MW): 2 tanques directos, 15 h. Andasol es cilindroparabólica con aceite e indirecta (7,5 h); Cerro Dominador tiene 17,5 h.", "s": "Thermal Storage 2, plantas comerciales", "x": ["t1", "fin"]}, {"b": "tes", "q": "En generación directa de vapor (DSG), ¿por qué es favorable el almacenamiento latente o termoquímico?", "o": ["Porque es más barato que las sales", "Porque incluye una etapa isoterma que encaja con la evaporación del agua", "Porque no necesita intercambiador", "Porque trabaja a menor presión"], "a": 1, "e": "La evaporación del agua ocurre a T constante; un TES sensible introduce una gran diferencia de temperaturas y penaliza el intercambio.", "s": "Thermal Storage 2, Direct Steam Generation", "x": ["t1", "fin"]}, {"b": "tes", "q": "¿Cuál de las siguientes propiedades NO es deseable en un material de cambio de fase (PCM)?", "o": ["Alta entalpía de fusión", "Baja variación de volumen", "Alto subenfriamiento", "Alta conductividad térmica"], "a": 2, "e": "Se busca cambio de fase reversible SIN subenfriamiento, para recuperar el calor a la misma temperatura a la que se almacenó.", "s": "Thermal Storage 3 (R. Bayón), Latent heat storage", "x": ["t1", "fin"]}, {"b": "tes", "q": "¿Qué solución se usa para compensar la baja conductividad térmica de los PCM?", "o": ["Aumentar el subenfriamiento", "Composites de grafito, aletas de grafito o aluminio, espumas metálicas o encapsulado", "Sustituir el PCM por agua", "Trabajar siempre en termoclina líquida"], "a": 1, "e": "Estructuras de transferencia: composites grafito+PCM, superficies conductoras extendidas, espumas metálicas, macro/microencapsulado.", "s": "Thermal Storage 3, heat transfer structures", "x": ["t1", "fin"]}, {"b": "tes", "q": "La batería de Carnot de Siemens-Gamesa es un ejemplo de:", "o": ["Almacenamiento latente con sales", "Power-to-heat-to-power en lecho de roca volcánica (~1.000 t, ~130 MWh, aire hasta 750 ºC)", "Almacenamiento termoquímico con hidruros", "CAES adiabático"], "a": 1, "e": "Electricidad renovable → resistencia eléctrica → calor en roca → turbina de vapor.", "s": "Thermal Storage 1, Packed-bed examples", "x": ["t1", "fin"]}, {"b": "bat", "q": "En la batería de plomo-ácido, durante la descarga:", "o": ["Se forma PbSO₄ en ambos electrodos", "Se forma PbO₂ en ambos electrodos", "El electrolito se concentra en H₂SO₄", "El Pb se deposita en el cátodo"], "a": 0, "e": "Pb + PbO₂ + 2H₂SO₄ → 2PbSO₄ + 2H₂O. Celda de ~2,1 V; con sobrecarga (>2,39 V) se disocia el agua del electrolito.", "s": "Tema 6 Baterías; libro, cap. 7.1", "x": ["t1", "fin"]}, {"b": "bat", "q": "¿Por qué el ánodo de una batería de ion sodio no usa grafito como las de litio?", "o": ["Porque el sodio es más ligero", "Porque el ion Na⁺, más grande, no se intercala eficientemente en el grafito", "Porque el grafito reacciona con el electrolito acuoso", "Porque el grafito no conduce electrones"], "a": 1, "e": "Se usan carbonos duros con estructura distinta al grafito. Cátodos: azul/blanco de Prusia, óxidos laminares o polianiónicos.", "s": "Tema 6 Baterías, Na-ion", "x": ["t1", "fin"]}, {"b": "bat", "q": "Comparando Na-ion con Li-ion según la tabla del tema:", "o": ["Na-ion tiene mayor energía específica (180–280 Wh/kg)", "Na-ion tiene menor energía específica (90–160 Wh/kg), menos riesgo de embalamiento térmico y admite descarga a 0 V", "Na-ion tiene mayor tensión de celda (~3,7 V)", "Na-ion funciona solo entre 0 y 45 ºC"], "a": 1, "e": "Li-ion: 180–280 Wh/kg, 3,6–3,7 V, 0–45 ºC. Na-ion: 90–160 Wh/kg, 2,5–3,0 V, −20 a 60 ºC, más tolerante a sobredescarga.", "s": "Tema 6 Baterías, Li vs Na-ion", "x": ["t1", "fin"]}, {"b": "bat", "q": "¿A qué química corresponde la sigla LFP?", "o": ["Litio-níquel-manganeso-cobalto", "Litio-hierro-fosfato", "Litio-titanato", "Litio-cobalto-óxido"], "a": 1, "e": "LFP = LiFePO₄. NMC = Ni-Mn-Co; LCO = LiCoO₂; LTO = titanato; NCA = Ni-Co-Al.", "s": "Tema 6 Baterías, Li-ion comparison", "x": ["t1", "fin"]}, {"b": "bat", "q": "En una batería de flujo redox de vanadio:", "o": ["Potencia y energía están acopladas porque el electrolito está en los electrodos", "La energía la fija el volumen de electrolito en los tanques y la potencia el stack de celdas; tensión estándar total ≈ 1,26 V", "Funciona con sodio y azufre fundidos a 350 ºC", "La tensión de celda es 2,58 V"], "a": 1, "e": "Anolito V²⁺/V³⁺ (−0,26 V) y catolito VO²⁺/VO₂⁺ (1,00 V) → E⁰ ≈ 1,26 V. Los tanques separados desacoplan energía y potencia.", "s": "Tema 6 Baterías, Vanadium flow", "d": "flow_battery", "fc": "Batería de flujo redox de vanadio.", "x": ["t1", "fin"]}, {"b": "bat", "q": "Pérdidas en baterías de flujo: ¿cuál depende aproximadamente de forma logarítmica de la corriente?", "o": ["Óhmicas", "De activación (cinética de las semirreacciones)", "De concentración/transporte", "Por bombeo"], "a": 1, "e": "Activación: logarítmica; óhmicas: lineales con la densidad de corriente; concentración: aparecen a altas velocidades de reacción por difusión limitada.", "s": "Tema 6 Baterías, Losses in flow batteries", "x": ["t1", "fin"]}, {"b": "bat", "q": "La batería Na-S:", "o": ["Trabaja a temperatura ambiente con electrolito acuoso", "Trabaja con Na y S fundidos (~350 ºC), tensión en circuito abierto ≈ 2,075 V", "Usa NiCl₂ y NaAlCl₄ con 2,58 V", "Es una batería de flujo de zinc"], "a": 1, "e": "La ZEBRA (sodio-haluro metálico) es la de NiCl₂/NaAlCl₄ con E⁰ ≈ 2,58 V.", "s": "Tema 6 Baterías, Na-S y ZEBRA", "x": ["t1", "fin"]}, {"b": "bat", "q": "En el circuito equivalente de una batería, durante la descarga la tensión en bornes respecto a V<sub>oc<\/sub> es:", "o": ["Mayor, por la caída en la resistencia interna", "Menor, por la caída en la resistencia interna", "Igual, la resistencia interna solo actúa en carga", "Independiente de la corriente"], "a": 1, "e": "V = V<sub>oc<\/sub> − I·R<sub>int<\/sub> en descarga; en carga la tensión aplicada debe superar V<sub>oc<\/sub>.", "s": "Tema 6 Baterías, Equivalent circuit", "x": ["t1", "fin"]}, {"b": "sc", "q": "Un supercondensador de 3.000 F se carga a 2,7 V. ¿Qué energía almacena?", "o": ["≈ 4,05 kJ", "≈ 10,9 kJ (≈ 3 Wh)", "≈ 21,9 kJ", "≈ 8,1 kJ"], "a": 1, "e": "E = ½·C·V² = 0,5·3.000·2,7² ≈ 10.935 J ≈ 3,04 Wh.", "s": "Libro de consulta, ec. 6.3", "x": ["t2", "fin"]}, {"b": "sc", "q": "¿Cómo consiguen los supercondensadores mucha más capacitancia que un condensador convencional?", "o": ["Aumentando la distancia entre electrodos D", "Aumentando el área efectiva A (electrodos porosos/rugosos) y reduciendo D, más pseudocapacidad redox", "Usando electrolitos sólidos de alta resistencia", "Aumentando la tensión nominal por encima de 100 V"], "a": 1, "e": "C = ε₀·ε<sub>r<\/sub>·A/D. Más área y menor separación aumentan C; algunos materiales añaden pseudocapacitancia por reacciones redox.", "s": "Libro de consulta, cap. 6.1", "x": ["t2", "fin"]}, {"b": "sc", "q": "La potencia máxima que entrega un condensador depende de su resistencia equivalente R<sub>p<\/sub> como:", "o": ["P<sub>máx<\/sub> = V²/(4·R<sub>p<\/sub>)", "P<sub>máx<\/sub> = V·R<sub>p<\/sub>", "P<sub>máx<\/sub> = ½·C·V²", "P<sub>máx<\/sub> = V²·R<sub>p<\/sub>/4"], "a": 0, "e": "Máxima transferencia de potencia con carga adaptada: V²/(4R<sub>p<\/sub>).", "s": "Libro de consulta, ec. 6.4", "x": ["t2", "fin"]}, {"b": "h2", "q": "¿Cuál es el potencial termoneutro de la electrólisis del agua líquida (basado en ΔH = 286 kJ/mol)?", "o": ["1,23 V", "1,48 V", "2,46 V", "0,83 V"], "a": 1, "e": "ΔV = ΔH/(nF) = 286.030/(2·96.485) ≈ 1,48 V. El reversible (ΔG) es 1,23 V.", "s": "Libro de consulta, cap. 9.1.1", "x": ["t2", "fin"]}, {"b": "h2", "q": "Con 1,48 V, la energía mínima de electrólisis es ≈ 39,7 kWh/kg H₂. ¿Qué consumo real típico cita el libro?", "o": ["≈ 33 kWh/kg", "≈ 39,7 kWh/kg", "≈ 50–55 kWh/kg", "≈ 120 kWh/kg"], "a": 2, "e": "Las ineficiencias de los electrolizadores elevan el consumo práctico a 50–55 kWh/kg H₂.", "s": "Libro de consulta, ec. 9.9", "x": ["t2", "fin"]}, {"b": "h2", "q": "Para que un combustible sea RFNBO según RED III / Reglamento Delegado 2023/1185, debe reducir sus emisiones de ciclo de vida al menos:", "o": ["un 50% frente a 94 gCO₂eq/MJ", "un 70% frente a 94 gCO₂eq/MJ", "un 70% frente a 91,16 gCO₂eq/MJ", "un 100% (emisiones nulas)"], "a": 1, "e": "Umbral del 70% respecto al comparador fósil de 94 gCO₂eq/MJ. El valor 91,16 gCO₂eq/MJ es la referencia de FuelEU Maritime.", "s": "Regulatory framework (Gasnam)", "x": ["t2", "fin"]}, {"b": "h2", "q": "Según el Reglamento Delegado (UE) 2023/1184, la correlación temporal entre la renovable del PPA y el electrolizador debe ser:", "o": ["Anual hasta 2030 y mensual después", "Mensual hasta finales de 2029 y horaria desde el 1 de enero de 2030", "Horaria desde 2024", "No se exige correlación temporal"], "a": 1, "e": "Además: misma zona de oferta y adicionalidad (la renovable debe haber entrado en operación como máximo 3 años antes que la planta RFNBO).", "s": "Regulatory framework (Gasnam)", "x": ["t2", "fin"]}, {"b": "h2", "q": "Objetivo de RED III (art. 22) para hidrógeno RFNBO en la industria:", "o": ["10% en 2030", "42% en 2030 y 60% en 2035", "60% en 2030 y 100% en 2040", "5,5% en 2030"], "a": 1, "e": "El 42% del hidrógeno usado en industria debe ser RFNBO en 2030 y el 60% en 2035.", "s": "Regulatory framework (Gasnam)", "x": ["t2", "fin"]}, {"b": "h2", "q": "¿Qué hidrógeno es \"bajo en carbono\" pero NO cuenta para los objetivos RFNBO de RED III?", "o": ["Electrolítico con PPA renovable que cumple adicionalidad", "Azul (SMR + CCS) o turquesa", "Verde producido con electricidad de autoconsumo renovable", "Ninguno: todo hidrógeno con −70% cuenta"], "a": 1, "e": "El bajo en carbono (energía no renovable, −70%) no es elegible para RED III. En ReFuelEU Aviation sí puede contar el electrolítico bajo en carbono, pero se excluye el azul/turquesa.", "s": "Regulatory framework, Low carbon hydrogen", "x": ["t2", "fin"]}, {"b": "h2", "q": "El reglamento AFIR exige para 2030 hidrogeneras públicas:", "o": ["Cada 100 km de la red global TEN-T, a 350 bar", "En cada nodo urbano y cada 200 km de la red básica TEN-T, ≥1 t/día a 700 bar", "Solo en puertos y aeropuertos", "Una por provincia"], "a": 1, "e": "Además, los Estados presentaron su Marco de Acción Nacional antes del 1/1/2025.", "s": "Regulatory framework, AFIR", "x": ["t2", "fin"]}, {"b": "h2", "q": "Tras la actualización del PNIEC, ¿cuál es el objetivo de capacidad de electrólisis en España para 2030?", "o": ["4 GW", "6,5 GW", "10 GW", "12 GW"], "a": 3, "e": "Pasó de 4 GW a 12 GW, el objetivo más ambicioso de la UE.", "s": "Regulatory framework (Gasnam)", "x": ["t2", "fin"]}, {"b": "tq", "q": "En almacenamiento termoquímico, la carga y la descarga corresponden a:", "o": ["Carga: reacción exotérmica; descarga: endotérmica", "Carga: reacción endotérmica (R + ΔH → P + nG); descarga: exotérmica", "Ambas son exotérmicas", "Es un cambio de fase sólido-líquido"], "a": 1, "e": "Se aporta calor para disociar el reactivo y se recupera al recombinar los productos. Mientras los productos estén separados no hay pérdidas.", "s": "Thermal Storage 3 (Bayón); libro cap. 8", "x": ["t1", "fin"]}, {"b": "tq", "q": "La temperatura de inversión T* de una reacción termoquímica (ΔG = 0) es:", "o": ["T* = ΔH·ΔS", "T* = ΔH/ΔS", "T* = ΔS/ΔH", "T* = ΔG/ΔS"], "a": 1, "e": "ΔG = ΔH − TΔS = 0 → T* = ΔH/ΔS. Por encima de T* la descomposición endotérmica es espontánea a la presión de equilibrio.", "s": "Thermal Storage 3, termodinámica", "x": ["t1", "fin"]}, {"b": "tq", "q": "De los pares siguientes, ¿cuál opera a mayor temperatura?", "o": ["Mg(OH)₂ ⇌ MgO + H₂O (250–350 ºC)", "Ca(OH)₂ ⇌ CaO + H₂O (450–550 ºC)", "CaCO₃ ⇌ CaO + CO₂ (850–950 ºC)", "MgSO₄·7H₂O ⇌ MgSO₄·H₂O + 6H₂O (100–150 ºC)"], "a": 2, "e": "Los carbonatos metálicos (CaCO₃) son los de mayor rango; los hidratos de sales, los de menor.", "s": "Libro de consulta, Cuadro 8.1", "x": ["t1", "fin"]}, {"b": "tq", "q": "En el sistema MgH₂ ⇌ Mg + H₂ (75 kJ/mol), al aumentar la presión de H₂ en la descarga:", "o": ["Baja la temperatura a la que se libera el calor", "Sube la temperatura de equilibrio a la que se recupera el calor", "No cambia nada", "La reacción deja de ser reversible"], "a": 1, "e": "Según la curva de equilibrio (Van't Hoff), p<sub>eq<\/sub> crece con T: a mayor presión, la hidruración (exotérmica) ocurre a mayor temperatura.", "s": "Thermal Storage 3, MgH₂", "d": "mgh2", "fc": "Curva de equilibrio p–T del sistema MgH₂/Mg + H₂ (ΔH = 75 kJ/mol).", "x": ["t1", "fin"]}, {"b": "caes", "q": "Huntorf (1978), primera CAES comercial, es una planta:", "o": ["Adiabática con TES de sales, RTE ≈ 0,70", "Diabática, ~321 MW durante 2 h, 46–72 bar, RTE ≈ 0,42", "Isobárica bajo el mar, RTE ≈ 0,60", "Diabática con recuperador, 110 MW durante 26 h"], "a": 1, "e": "La de 110 MW/26 h con recuperador (RTE ≈ 0,54, −22–25% de combustible) es McIntosh (Alabama).", "s": "Tema 3 CAES, Plants & projects", "x": ["t1", "fin"]}, {"b": "caes", "q": "Se comprime aire (γ = 1,4) isentrópicamente de 1 a 10 bar desde 300 K. ¿Temperatura de salida?", "o": ["≈ 420 K", "≈ 579 K", "≈ 772 K", "≈ 3.000 K"], "a": 1, "e": "T₂ = T₁·(p₂/p₁)^((γ−1)/γ) = 300·10^0,2857 ≈ 579 K. Esa subida de temperatura es la que el a-CAES almacena en un TES.", "s": "Tema 3 CAES, Compression work", "x": ["t1", "fin"]}, {"b": "caes", "q": "¿Por qué se usa compresión multietapa con refrigeración intermedia?", "o": ["Para aumentar la temperatura final del aire", "Para reducir el trabajo de compresión acercándose al ideal isotermo", "Para aumentar la presión de la caverna sin límite", "Para eliminar la humedad del aire"], "a": 1, "e": "Igual que en expansión se usan varias etapas con recalentamientos intermedios. El proceso isotermo es el ideal, no práctico.", "s": "Tema 3 CAES, Multistage", "x": ["t1", "fin"]}, {"b": "caes", "q": "Almacenamiento isobárico frente a isocórico:", "o": ["El isobárico es más barato pero almacena la mitad de energía", "El isobárico es más caro pero la energía recuperable por unidad de volumen es aproximadamente el doble", "Ambos dan la misma energía por volumen", "El isocórico mantiene la presión constante"], "a": 1, "e": "Isocórico: volumen fijo, la presión cae al descargar (40–80 bar típicos). Isobárico: se mantiene la presión reduciendo el volumen de aire.", "s": "Tema 3 CAES, Components", "x": ["t1", "fin"]}, {"b": "caes", "q": "¿Qué consecuencia tiene laminar (throttling) el aire a la entrada de la turbina?", "o": ["Aumenta el trabajo recuperado", "Mantiene constante la presión de entrada y mejora el rendimiento de la turbina, pero se pierde trabajo recuperable", "Aumenta la presión de la caverna", "Elimina la necesidad de combustible"], "a": 1, "e": "Es un compromiso: la turbina opera en su punto de diseño a costa de degradar la exergía del aire almacenado.", "s": "Tema 3 CAES, Lamination", "x": ["t1", "fin"]}, {"b": "caes", "q": "El proyecto ADELE (Staßfurt, Alemania) es:", "o": ["Una CAES diabática de 290 MW", "Una a-CAES de hasta 260 MW con eficiencias cercanas al 70% y 7–10 h de almacenamiento", "Una planta LAES de Highview Power", "Una mini-CAES en tanques a 300 bar"], "a": 1, "e": "Adiabático: el calor de compresión se guarda en TES y se reutiliza al expandir, sin quemar combustible.", "s": "Tema 3 CAES, ADELE", "d": "acaes", "fc": "Esquema de CAES adiabático (a-CAES), como ADELE.", "x": ["t1", "fin"]}, {"b": "caes", "q": "Las turbinas de expansión de una CAES deben:", "o": ["Trabajar solo a plena carga", "Trabajar con cargas entre 40 y 100% y poder arrancar en unos 15 minutos", "Ser siempre radiales", "Funcionar con relaciones de presión inferiores a 2"], "a": 1, "e": "La presión de caverna varía y el caudal de aire puede variar hasta un factor 3; el arranque rápido permite dar reserva.", "s": "Tema 3 CAES, Expansion stages", "x": ["t1", "fin"]}, {"b": "laes", "q": "¿Qué aporta el ciclo de Claude frente al de Linde en la licuación del aire?", "o": ["Usa solo válvula Joule-Thomson", "Deriva parte del aire de alta presión a una turbina de expansión, aumentando el rendimiento en líquido y reduciendo el trabajo específico (~Linde/4)", "Trabaja a presión atmosférica", "Elimina la necesidad de cold-box"], "a": 1, "e": "El Linde no se usa por su bajo rendimiento en líquido y alto trabajo específico.", "s": "Tema 4 LAES, Air liquefaction", "x": ["t2", "fin"]}, {"b": "laes", "q": "En una LAES, el almacenamiento de frío de alta calidad (HGCS):", "o": ["Usa aceite térmico a 390 ºC", "Recupera el frío de la regasificación del aire líquido en lechos de roca (cuarcita) entre −180 y 30 ºC para ayudar a la licuación", "Almacena hidrógeno líquido", "Es el tanque de aire líquido a 1,1 bar"], "a": 1, "e": "El calor de los intercoolers del compresor se guarda en aceite térmico (~390 ºC, dos tanques) y se usa en los recalentamientos de turbina.", "s": "Tema 4 LAES, Thermal storage", "d": "laes", "fc": "Esquema de una planta LAES con almacenamiento de calor y frío (adaptado de Vecchi et al. 2021).", "x": ["t2", "fin"]}, {"b": "laes", "q": "¿Por qué el pretratamiento del aire (PSA/TSA con zeolitas) es imprescindible en LAES?", "o": ["Para aumentar la presión", "Para eliminar H₂O y CO₂, que solidificarían a temperaturas criogénicas", "Para enriquecer el aire en oxígeno", "Para calentar el aire antes de la compresión"], "a": 1, "e": "Adsorción a alta presión/baja temperatura y regeneración a baja presión/alta temperatura.", "s": "Tema 4 LAES, Air treatment", "x": ["t2", "fin"]}, {"b": "laes", "q": "¿Cuál NO es una ventaja de LAES citada en el tema?", "o": ["No tiene limitación geográfica", "Alta densidad energética y modularidad (más tanques)", "Hibridación con frío de regasificación de GNL o calor residual", "RTE superior al 85% sin hibridación"], "a": 3, "e": "La RTE típica es ~50–60%; con hibridación externa puede llegar al 70–80%.", "s": "Tema 4 LAES, Advantages", "x": ["t2", "fin"]}, {"b": "laes", "q": "El tanque de aire líquido trabaja típicamente a:", "o": ["~1,1 bar y ~80 K, acero inoxidable con doble pared, vacío y aislamiento", "~100 bar y ambiente", "~40 bar y −50 ºC", "~1 bar y 300 K"], "a": 0, "e": "El aire licúa a ~79 K (−194 ºC) a presión atmosférica.", "s": "Tema 4 LAES, Liquid air tank", "x": ["t2", "fin"]}, {"b": "laes", "q": "Caso LAES+FV: tasa de descuento 7% y vida 30 años. ¿Factor de recuperación de capital (CRF) usado para el LCOE?", "o": ["0,0333", "0,0806", "0,1000", "0,0700"], "a": 1, "e": "CRF = r/(1−(1+r)^−N) = 0,07/(1−1,07^−30) ≈ 0,0806. Con 14.892 MWh/año (1,7 MW·8.760 h) se obtiene LCOE ≈ 93 €/MWh.", "s": "Tema 4 LAES, Case study", "x": ["t2", "fin"]}, {"b": "fw", "q": "Un volante macizo (cilindro) de 1.000 kg y radio 0,5 m gira a 1.000 rad/s. ¿Energía almacenada?", "o": ["≈ 125 MJ", "≈ 62,5 MJ (≈ 17,4 kWh)", "≈ 31,3 MJ", "≈ 250 MJ"], "a": 1, "e": "I = ½·m·r² = 125 kg·m²; E = ½·I·ω² = 0,5·125·10⁶ = 62,5 MJ.", "s": "Libro de consulta, ec. 5.1–5.2", "x": ["t2", "fin"]}, {"b": "fw", "q": "La densidad energética de un volante es E/m = K·v<sub>r<\/sub>². ¿Qué factor de forma K corresponde a un anillo delgado?", "o": ["0,25", "0,5", "0,606", "1"], "a": 1, "e": "Cilindro macizo K = 0,25; anillo delgado K = 0,5. La E/m máxima está limitada por σ<sub>máx<\/sub>/ρ del material.", "s": "Libro de consulta, ec. 5.6", "x": ["t2", "fin"]}, {"b": "fw", "q": "En un disco/cilindro macizo en rotación, la tensión máxima de tracción aparece:", "o": ["En la periferia", "En el centro, en el eje de giro", "Uniformemente en todo el volumen", "En la superficie lateral a media altura"], "a": 1, "e": "σ<sub>máx<\/sub> = ⅛·ρ·r²·ω²·(3+ν), en el eje. Limita la velocidad periférica admisible.", "s": "Libro de consulta, ec. 5.3", "x": ["t2", "fin"]}, {"b": "fw", "q": "Para velocidades periféricas superiores a ~1.000 m/s se prefieren:", "o": ["Cilindros macizos de acero al carbono", "Cilindros huecos de materiales compuestos (fibra de carbono)", "Discos de hormigón", "Rotores de plomo"], "a": 1, "e": "El acero de bajo carbono sirve hasta ~300 m/s. Los compuestos dan mayor σ/ρ pero su fabricación es más compleja y cara.", "s": "Libro de consulta, cap. 5.2.1", "x": ["t2", "fin"]}, {"b": "fw", "q": "¿Qué aplicación de los volantes de inercia se cita como ejemplo de servicio a red?", "o": ["Arbitraje estacional", "Regulación de frecuencia (Beacon Power, 20 MW en Stephentown, NY)", "Almacenamiento de calor industrial", "Producción de hidrógeno"], "a": 1, "e": "Responden en milisegundos. También: KERS en Fórmula 1 y recuperación de frenado en metros.", "s": "Libro de consulta, cap. 5.3", "x": ["t2", "fin"]}, {"b": "app", "q": "Para dar servicio de regulación de red (respuesta en ms a segundos, poca energía), ¿qué tecnologías encajan mejor según el diagrama capacidad/potencia?", "o": ["Bombeo y CAES", "Volantes, supercondensadores y baterías", "Hidrógeno y termoquímico", "LAES y sales fundidas"], "a": 1, "e": "La reserva de energía (horas-días) la cubren bombeo, CAES, LAES y H₂; la estabilidad y regulación, los sistemas de alta potencia y respuesta rápida.", "s": "Tema 1, Capacity/Power", "d": "ragone", "fc": "Rango aproximado de potencia y tiempo de descarga por tecnología.", "x": ["t2", "fin"]}, {"b": "app", "q": "Caso CAES adiabático del tema: 2 MW de descarga y 2 h de capacidad, operando ~700 h/año en descarga. ¿Energía descargada al año?", "o": ["1.400 MWh", "700 MWh", "4 MWh", "2.800 MWh"], "a": 0, "e": "E<sub>des<\/sub> = 2 MW·700 h = 1.400 MWh/año. Con RTE ≈ 65%, la energía de carga sería ≈ 2.150 MWh.", "s": "Tema 3 CAES, Practical case", "x": ["t2", "fin"]}, {"b": "app", "q": "Industria con demanda constante de 1,7 MW, FV de 13,6 MWp y LAES con η = 55%. Si la LAES descarga 1,7 MW durante la noche, ¿por qué la potencia de carga (6,6 MW) es mucho mayor que la de descarga?", "o": ["Porque la carga solo dispone de las horas de sol y además debe cubrir las pérdidas (η = 55%)", "Porque los compresores tienen menor rendimiento que la FV", "Porque se vende el excedente a red", "Por la degradación anual"], "a": 0, "e": "Se carga en pocas horas centrales y hay que almacenar ~1/0,55 veces la energía nocturna demandada (capacidad ≈ 40 MWh).", "s": "Tema 4 LAES, Case study", "x": ["t2", "fin"]}, {"b": "tes", "q": "La figura muestra el perfil de temperatura frente a la altura en un tanque termoclino (caliente arriba, frío abajo) en tres momentos. ¿Qué perfil corresponde al tanque completamente cargado?", "o": ["Perfil A", "Perfil B", "Perfil C", "Los tres corresponden al mismo estado de carga"], "a": 2, "e": "Al cargar, el fluido caliente entra por arriba y la franja termoclina baja: en C casi todo el tanque está a la temperatura alta. A es el tanque casi descargado y B, a media carga.", "s": "Thermal Storage 1, Thermoclines", "d": "thermocline", "fc": "Perfiles de temperatura en un tanque termoclino (adaptado de Thermal Storage 1).", "x": ["t1", "fin"]}, {"b": "caes", "q": "En el esquema de CAES adiabático de la figura, ¿qué elemento sustituye a la cámara de combustión de una CAES diabática como Huntorf?", "o": ["La caverna", "El almacenamiento térmico (TES) que guarda el calor de compresión y recalienta el aire antes de la turbina", "El motor de carga", "Una segunda etapa de compresión"], "a": 1, "e": "En d-CAES el aire se recalienta quemando gas; en a-CAES el calor de compresión se guarda en un TES (termoclina de rocas o dos tanques de aceite/sales) y se devuelve en la descarga, lo que eleva la RTE a ~70%.", "s": "Tema 3 CAES, a-CAES", "d": "acaes", "fc": "Esquema de CAES adiabático (a-CAES).", "x": ["t1", "fin"]}, {"b": "app", "q": "Según el mapa potencia-tiempo de descarga de la figura, ¿qué tecnología cubre descargas de horas a días con potencias de cientos de MW a GW?", "o": ["Supercondensadores", "Volantes de inercia", "Bombeo hidráulico (y CAES/LAES)", "Baterías de plomo"], "a": 2, "e": "Supercondensadores y volantes ocupan la zona de segundos-minutos (regulación); las baterías, minutos-horas; bombeo, CAES y LAES, la de reserva de energía.", "s": "Tema 1, Capacity/Power (Applied Energy 137, 2015)", "d": "ragone", "fc": "Rango aproximado de potencia y tiempo de descarga por tecnología.", "x": ["t2", "fin"]}];
+const DIAG = {"acaes": "<svg viewBox=\"0 0 540 265\" role=\"img\" aria-label=\"CAES adiabático con almacenamiento térmico\"><defs><marker id=\"ar\" viewBox=\"0 0 10 10\" refX=\"9\" refY=\"5\" markerWidth=\"7\" markerHeight=\"7\" orient=\"auto-start-reverse\"><path d=\"M0,0 L10,5 L0,10 z\" class=\"arh\"/><\/marker><\/defs><rect class=\"box\" x=\"10.0\" y=\"30.0\" width=\"90.0\" height=\"50.0\" rx=\"6\"/><text x=\"55.0\" y=\"52.0\" text-anchor=\"middle\" class=\"t-b\">Motor<\/text><text x=\"55.0\" y=\"66.0\" text-anchor=\"middle\" class=\"t-s\">(carga)<\/text><rect class=\"of\" x=\"130.0\" y=\"30.0\" width=\"100.0\" height=\"50.0\" rx=\"6\"/><text x=\"180.0\" y=\"52.0\" text-anchor=\"middle\" class=\"t-b\">Compresor<\/text><text x=\"180.0\" y=\"66.0\" text-anchor=\"middle\" class=\"t-s\">aire caliente<\/text><rect class=\"box\" x=\"260.0\" y=\"30.0\" width=\"100.0\" height=\"50.0\" rx=\"6\"/><text x=\"310.0\" y=\"52.0\" text-anchor=\"middle\" class=\"t-b\">Intercambiador<\/text><text x=\"310.0\" y=\"66.0\" text-anchor=\"middle\" class=\"t-s\">cede calor<\/text><rect class=\"bf\" x=\"390.0\" y=\"30.0\" width=\"130.0\" height=\"50.0\" rx=\"6\"/><text x=\"455.0\" y=\"52.0\" text-anchor=\"middle\" class=\"t-b\">Caverna / tanque<\/text><text x=\"455.0\" y=\"66.0\" text-anchor=\"middle\" class=\"t-s\">aire 40–80 bar<\/text><rect class=\"of\" x=\"200.0\" y=\"120.0\" width=\"160.0\" height=\"50.0\" rx=\"6\"/><text x=\"280.0\" y=\"142.0\" text-anchor=\"middle\" class=\"t-b\">TES<\/text><text x=\"280.0\" y=\"156.0\" text-anchor=\"middle\" class=\"t-s\">calor de compresión<\/text><rect class=\"box\" x=\"390.0\" y=\"200.0\" width=\"130.0\" height=\"50.0\" rx=\"6\"/><text x=\"455.0\" y=\"222.0\" text-anchor=\"middle\" class=\"t-b\">Intercambiador<\/text><text x=\"455.0\" y=\"236.0\" text-anchor=\"middle\" class=\"t-s\">recalienta aire<\/text><rect class=\"bf\" x=\"240.0\" y=\"200.0\" width=\"110.0\" height=\"50.0\" rx=\"6\"/><text x=\"295.0\" y=\"222.0\" text-anchor=\"middle\" class=\"t-b\">Turbina<\/text><text x=\"295.0\" y=\"236.0\" text-anchor=\"middle\" class=\"t-s\">expansión<\/text><rect class=\"box\" x=\"100.0\" y=\"200.0\" width=\"100.0\" height=\"50.0\" rx=\"6\"/><text x=\"150.0\" y=\"222.0\" text-anchor=\"middle\" class=\"t-b\">Generador<\/text><text x=\"150.0\" y=\"236.0\" text-anchor=\"middle\" class=\"t-s\">(descarga)<\/text><line class=\"ax\" x1=\"102.0\" y1=\"55.0\" x2=\"128.0\" y2=\"55.0\" marker-end=\"url(#ar)\"/><line class=\"ax\" x1=\"232.0\" y1=\"55.0\" x2=\"258.0\" y2=\"55.0\" marker-end=\"url(#ar)\"/><line class=\"ax\" x1=\"362.0\" y1=\"55.0\" x2=\"388.0\" y2=\"55.0\" marker-end=\"url(#ar)\"/><line class=\"o\" x1=\"310.0\" y1=\"82.0\" x2=\"290.0\" y2=\"118.0\" marker-end=\"url(#ar)\"/><line class=\"o\" x1=\"330.0\" y1=\"172.0\" x2=\"430.0\" y2=\"198.0\" marker-end=\"url(#ar)\"/><line class=\"b\" x1=\"455.0\" y1=\"82.0\" x2=\"455.0\" y2=\"198.0\" marker-end=\"url(#ar)\"/><line class=\"ax\" x1=\"388.0\" y1=\"225.0\" x2=\"352.0\" y2=\"225.0\" marker-end=\"url(#ar)\"/><line class=\"ax\" x1=\"238.0\" y1=\"225.0\" x2=\"202.0\" y2=\"225.0\" marker-end=\"url(#ar)\"/><text x=\"20.0\" y=\"120.0\" text-anchor=\"start\" class=\"t-b\">Sin combustión:<\/text><text x=\"20.0\" y=\"136.0\" text-anchor=\"start\" class=\"t-s\">el calor almacenado<\/text><text x=\"20.0\" y=\"150.0\" text-anchor=\"start\" class=\"t-s\">sustituye al gas<\/text><\/svg>", "csp_sm": "<svg viewBox=\"0 0 540 220\" role=\"img\" aria-label=\"Central CSP con almacenamiento y múltiplo solar\"><defs><marker id=\"ar\" viewBox=\"0 0 10 10\" refX=\"9\" refY=\"5\" markerWidth=\"7\" markerHeight=\"7\" orient=\"auto-start-reverse\"><path d=\"M0,0 L10,5 L0,10 z\" class=\"arh\"/><\/marker><\/defs><rect class=\"of\" x=\"10.0\" y=\"70.0\" width=\"120.0\" height=\"60.0\" rx=\"6\"/><text x=\"70.0\" y=\"97.0\" text-anchor=\"middle\" class=\"t-b\">Campo solar<\/text><text x=\"70.0\" y=\"111.0\" text-anchor=\"middle\" class=\"t-s\">100 MWt / η_solar<\/text><rect class=\"box\" x=\"165.0\" y=\"70.0\" width=\"100.0\" height=\"60.0\" rx=\"6\"/><text x=\"215.0\" y=\"97.0\" text-anchor=\"middle\" class=\"t-b\">Receptor<\/text><text x=\"215.0\" y=\"111.0\" text-anchor=\"middle\" class=\"t-s\">100 MWt<\/text><rect class=\"bf\" x=\"310.0\" y=\"20.0\" width=\"110.0\" height=\"55.0\" rx=\"6\"/><text x=\"365.0\" y=\"44.5\" text-anchor=\"middle\" class=\"t-b\">Bloque potencia<\/text><text x=\"365.0\" y=\"58.5\" text-anchor=\"middle\" class=\"t-s\">50 MWt nominal<\/text><rect class=\"bf\" x=\"310.0\" y=\"125.0\" width=\"110.0\" height=\"55.0\" rx=\"6\"/><text x=\"365.0\" y=\"149.5\" text-anchor=\"middle\" class=\"t-b\">TES (2 tanques)<\/text><text x=\"365.0\" y=\"163.5\" text-anchor=\"middle\" class=\"t-s\">50 MWt de carga<\/text><rect class=\"box\" x=\"445.0\" y=\"20.0\" width=\"90.0\" height=\"55.0\" rx=\"6\"/><text x=\"490.0\" y=\"44.5\" text-anchor=\"middle\" class=\"t-b\">Generador<\/text><text x=\"490.0\" y=\"58.5\" text-anchor=\"middle\" class=\"t-s\">50·η MWe<\/text><line class=\"ax\" x1=\"132.0\" y1=\"100.0\" x2=\"163.0\" y2=\"100.0\" marker-end=\"url(#ar)\"/><line class=\"ax\" x1=\"267.0\" y1=\"90.0\" x2=\"308.0\" y2=\"50.0\" marker-end=\"url(#ar)\"/><line class=\"ax\" x1=\"267.0\" y1=\"110.0\" x2=\"308.0\" y2=\"150.0\" marker-end=\"url(#ar)\"/><line class=\"ax\" x1=\"422.0\" y1=\"47.0\" x2=\"443.0\" y2=\"47.0\" marker-end=\"url(#ar)\"/><line class=\"g\" x1=\"365.0\" y1=\"123.0\" x2=\"365.0\" y2=\"78.0\" marker-end=\"url(#ar)\"/><text x=\"372.0\" y=\"104.0\" text-anchor=\"start\" class=\"t-s\">noche<\/text><text x=\"270.0\" y=\"205.0\" text-anchor=\"middle\" class=\"t-b\">SM = potencia del campo solar / potencia nominal = 100 / 50<\/text><\/svg>", "flow_battery": "<svg viewBox=\"0 0 540 245\" role=\"img\" aria-label=\"Batería de flujo redox de vanadio\"><defs><marker id=\"ar\" viewBox=\"0 0 10 10\" refX=\"9\" refY=\"5\" markerWidth=\"7\" markerHeight=\"7\" orient=\"auto-start-reverse\"><path d=\"M0,0 L10,5 L0,10 z\" class=\"arh\"/><\/marker><\/defs><rect class=\"bf\" x=\"10.0\" y=\"50.0\" width=\"120.0\" height=\"130.0\" rx=\"6\"/><text x=\"70.0\" y=\"112.0\" text-anchor=\"middle\" class=\"t-b\">Tanque anolito<\/text><text x=\"70.0\" y=\"126.0\" text-anchor=\"middle\" class=\"t-s\">V²⁺ / V³⁺<\/text><rect class=\"of\" x=\"410.0\" y=\"50.0\" width=\"120.0\" height=\"130.0\" rx=\"6\"/><text x=\"470.0\" y=\"112.0\" text-anchor=\"middle\" class=\"t-b\">Tanque catolito<\/text><text x=\"470.0\" y=\"126.0\" text-anchor=\"middle\" class=\"t-s\">VO²⁺ / VO₂⁺<\/text><rect class=\"box\" x=\"200.0\" y=\"40.0\" width=\"140.0\" height=\"150.0\" rx=\"6\"/><line class=\"g\" x1=\"270.0\" y1=\"44.0\" x2=\"270.0\" y2=\"186.0\"/><text x=\"270.0\" y=\"205.0\" text-anchor=\"middle\" class=\"t-s\">membrana de intercambio iónico<\/text><text x=\"235.0\" y=\"115.0\" text-anchor=\"middle\" class=\"t-b\">(−)<\/text><text x=\"305.0\" y=\"115.0\" text-anchor=\"middle\" class=\"t-b\">(+)<\/text><text x=\"270.0\" y=\"32.0\" text-anchor=\"middle\" class=\"t-b\">Stack de celdas<\/text><line class=\"b\" x1=\"132.0\" y1=\"80.0\" x2=\"198.0\" y2=\"80.0\" marker-end=\"url(#ar)\"/><line class=\"b\" x1=\"198.0\" y1=\"150.0\" x2=\"132.0\" y2=\"150.0\" marker-end=\"url(#ar)\"/><text x=\"165.0\" y=\"74.0\" text-anchor=\"middle\" class=\"t-s\">bomba<\/text><line class=\"o\" x1=\"408.0\" y1=\"80.0\" x2=\"342.0\" y2=\"80.0\" marker-end=\"url(#ar)\"/><line class=\"o\" x1=\"342.0\" y1=\"150.0\" x2=\"408.0\" y2=\"150.0\" marker-end=\"url(#ar)\"/><text x=\"375.0\" y=\"74.0\" text-anchor=\"middle\" class=\"t-s\">bomba<\/text><text x=\"270.0\" y=\"232.0\" text-anchor=\"middle\" class=\"t-b\">Energía ∝ volumen de electrolito · Potencia ∝ área del stack<\/text><\/svg>", "laes": "<svg viewBox=\"0 0 540 268\" role=\"img\" aria-label=\"Esquema de una planta LAES\"><defs><marker id=\"ar\" viewBox=\"0 0 10 10\" refX=\"9\" refY=\"5\" markerWidth=\"7\" markerHeight=\"7\" orient=\"auto-start-reverse\"><path d=\"M0,0 L10,5 L0,10 z\" class=\"arh\"/><\/marker><\/defs><text x=\"10.0\" y=\"22.0\" text-anchor=\"start\" class=\"t-b\">CARGA<\/text><text x=\"10.0\" y=\"180.0\" text-anchor=\"start\" class=\"t-b\">DESCARGA<\/text><rect class=\"box\" x=\"10.0\" y=\"30.0\" width=\"95.0\" height=\"50.0\" rx=\"6\"/><text x=\"57.5\" y=\"52.0\" text-anchor=\"middle\" class=\"t-b\">Compresores<\/text><text x=\"57.5\" y=\"66.0\" text-anchor=\"middle\" class=\"t-s\">+ intercoolers<\/text><rect class=\"bf\" x=\"130.0\" y=\"30.0\" width=\"95.0\" height=\"50.0\" rx=\"6\"/><text x=\"177.5\" y=\"52.0\" text-anchor=\"middle\" class=\"t-b\">Cold-box<\/text><text x=\"177.5\" y=\"66.0\" text-anchor=\"middle\" class=\"t-s\">enfría aire HP<\/text><rect class=\"box\" x=\"250.0\" y=\"30.0\" width=\"100.0\" height=\"50.0\" rx=\"6\"/><text x=\"300.0\" y=\"52.0\" text-anchor=\"middle\" class=\"t-b\">Expansión<\/text><text x=\"300.0\" y=\"66.0\" text-anchor=\"middle\" class=\"t-s\">+ separador<\/text><rect class=\"bf\" x=\"380.0\" y=\"30.0\" width=\"140.0\" height=\"50.0\" rx=\"6\"/><text x=\"450.0\" y=\"52.0\" text-anchor=\"middle\" class=\"t-b\">Tanque aire líquido<\/text><text x=\"450.0\" y=\"66.0\" text-anchor=\"middle\" class=\"t-s\">~1,1 bar · ~80 K<\/text><rect class=\"of\" x=\"10.0\" y=\"105.0\" width=\"130.0\" height=\"45.0\" rx=\"6\"/><text x=\"75.0\" y=\"124.5\" text-anchor=\"middle\" class=\"t-b\">Almac. caliente<\/text><text x=\"75.0\" y=\"138.5\" text-anchor=\"middle\" class=\"t-s\">aceite ~390 ºC<\/text><rect class=\"bf\" x=\"160.0\" y=\"105.0\" width=\"160.0\" height=\"45.0\" rx=\"6\"/><text x=\"240.0\" y=\"124.5\" text-anchor=\"middle\" class=\"t-b\">HGCS (frío)<\/text><text x=\"240.0\" y=\"138.5\" text-anchor=\"middle\" class=\"t-s\">lecho de rocas −180…30 ºC<\/text><rect class=\"box\" x=\"10.0\" y=\"188.0\" width=\"120.0\" height=\"50.0\" rx=\"6\"/><text x=\"70.0\" y=\"210.0\" text-anchor=\"middle\" class=\"t-b\">Generador<\/text><text x=\"70.0\" y=\"224.0\" text-anchor=\"middle\" class=\"t-s\">eléctrico<\/text><rect class=\"of\" x=\"160.0\" y=\"188.0\" width=\"140.0\" height=\"50.0\" rx=\"6\"/><text x=\"230.0\" y=\"210.0\" text-anchor=\"middle\" class=\"t-b\">Turbinas<\/text><text x=\"230.0\" y=\"224.0\" text-anchor=\"middle\" class=\"t-s\">+ recalentadores<\/text><rect class=\"box\" x=\"380.0\" y=\"188.0\" width=\"140.0\" height=\"50.0\" rx=\"6\"/><text x=\"450.0\" y=\"210.0\" text-anchor=\"middle\" class=\"t-b\">Bomba criogénica<\/text><text x=\"450.0\" y=\"224.0\" text-anchor=\"middle\" class=\"t-s\">+ evaporador<\/text><line class=\"ax\" x1=\"107.0\" y1=\"55.0\" x2=\"128.0\" y2=\"55.0\" marker-end=\"url(#ar)\"/><line class=\"ax\" x1=\"227.0\" y1=\"55.0\" x2=\"248.0\" y2=\"55.0\" marker-end=\"url(#ar)\"/><line class=\"ax\" x1=\"352.0\" y1=\"55.0\" x2=\"378.0\" y2=\"55.0\" marker-end=\"url(#ar)\"/><line class=\"o\" x1=\"57.0\" y1=\"82.0\" x2=\"57.0\" y2=\"103.0\" marker-end=\"url(#ar)\"/><line class=\"o\" x1=\"110.0\" y1=\"152.0\" x2=\"215.0\" y2=\"186.0\" marker-end=\"url(#ar)\"/><line class=\"b\" x1=\"450.0\" y1=\"82.0\" x2=\"450.0\" y2=\"186.0\" marker-end=\"url(#ar)\"/><line class=\"ax\" x1=\"378.0\" y1=\"213.0\" x2=\"302.0\" y2=\"213.0\" marker-end=\"url(#ar)\"/><line class=\"ax\" x1=\"158.0\" y1=\"213.0\" x2=\"132.0\" y2=\"213.0\" marker-end=\"url(#ar)\"/><line class=\"b\" x1=\"400.0\" y1=\"186.0\" x2=\"310.0\" y2=\"152.0\" marker-end=\"url(#ar)\"/><line class=\"b\" x1=\"200.0\" y1=\"103.0\" x2=\"185.0\" y2=\"82.0\" marker-end=\"url(#ar)\"/><text x=\"270.0\" y=\"258.0\" text-anchor=\"middle\" class=\"t-s\">Naranja: calor de compresión → recalentamiento · Azul: frío de regasificación → licuación<\/text><\/svg>", "mgh2": "<svg viewBox=\"0 0 520 280\" role=\"img\" aria-label=\"Curva de equilibrio MgH2 / Mg + H2\"><defs><marker id=\"ar\" viewBox=\"0 0 10 10\" refX=\"9\" refY=\"5\" markerWidth=\"7\" markerHeight=\"7\" orient=\"auto-start-reverse\"><path d=\"M0,0 L10,5 L0,10 z\" class=\"arh\"/><\/marker><\/defs><line class=\"grid\" x1=\"70.0\" y1=\"240.0\" x2=\"70.0\" y2=\"20.0\"/><text x=\"70.0\" y=\"256.0\" text-anchor=\"middle\" class=\"t-s\">250<\/text><line class=\"grid\" x1=\"161.1\" y1=\"240.0\" x2=\"161.1\" y2=\"20.0\"/><text x=\"161.1\" y=\"256.0\" text-anchor=\"middle\" class=\"t-s\">300<\/text><line class=\"grid\" x1=\"252.2\" y1=\"240.0\" x2=\"252.2\" y2=\"20.0\"/><text x=\"252.2\" y=\"256.0\" text-anchor=\"middle\" class=\"t-s\">350<\/text><line class=\"grid\" x1=\"343.3\" y1=\"240.0\" x2=\"343.3\" y2=\"20.0\"/><text x=\"343.3\" y=\"256.0\" text-anchor=\"middle\" class=\"t-s\">400<\/text><line class=\"grid\" x1=\"434.4\" y1=\"240.0\" x2=\"434.4\" y2=\"20.0\"/><text x=\"434.4\" y=\"256.0\" text-anchor=\"middle\" class=\"t-s\">450<\/text><line class=\"grid\" x1=\"70.0\" y1=\"240.0\" x2=\"480.0\" y2=\"240.0\"/><text x=\"64.0\" y=\"244.0\" text-anchor=\"end\" class=\"t-s\">0<\/text><line class=\"grid\" x1=\"70.0\" y1=\"185.0\" x2=\"480.0\" y2=\"185.0\"/><text x=\"64.0\" y=\"189.0\" text-anchor=\"end\" class=\"t-s\">10<\/text><line class=\"grid\" x1=\"70.0\" y1=\"130.0\" x2=\"480.0\" y2=\"130.0\"/><text x=\"64.0\" y=\"134.0\" text-anchor=\"end\" class=\"t-s\">20<\/text><line class=\"grid\" x1=\"70.0\" y1=\"75.0\" x2=\"480.0\" y2=\"75.0\"/><text x=\"64.0\" y=\"79.0\" text-anchor=\"end\" class=\"t-s\">30<\/text><line class=\"grid\" x1=\"70.0\" y1=\"20.0\" x2=\"480.0\" y2=\"20.0\"/><text x=\"64.0\" y=\"24.0\" text-anchor=\"end\" class=\"t-s\">40<\/text><line class=\"ax\" x1=\"70.0\" y1=\"240.0\" x2=\"480.0\" y2=\"240.0\"/><line class=\"ax\" x1=\"70.0\" y1=\"240.0\" x2=\"70.0\" y2=\"20.0\"/><text x=\"275.0\" y=\"274.0\" text-anchor=\"middle\">Temperatura (ºC)<\/text><text x=\"28\" y=\"130.0\" text-anchor=\"middle\" transform=\"rotate(-90 28 130.0)\">Presión de H₂ (bar)<\/text><polyline class=\"b\" points=\"70.0,238.9 79.1,238.7 88.2,238.5 97.3,238.2 106.4,237.9 115.6,237.6 124.7,237.2 133.8,236.7 142.9,236.2 152.0,235.7 161.1,235.0 170.2,234.3 179.3,233.5 188.4,232.6 197.6,231.6 206.7,230.4 215.8,229.1 224.9,227.7 234.0,226.1 243.1,224.4 252.2,222.5 261.3,220.3 270.4,217.9 279.6,215.3 288.7,212.5 297.8,209.3 306.9,205.9 316.0,202.1 325.1,198.0 334.2,193.5 343.3,188.6 352.4,183.2 361.6,177.4 370.7,171.1 379.8,164.3 388.9,156.9 398.0,148.9 407.1,140.3 416.2,131.0 425.3,120.9 434.4,110.1 443.6,98.5 452.7,86.0 461.8,72.7 470.9,58.3 480.0,43.0\"/><text x=\"161.1\" y=\"86.0\" text-anchor=\"start\" class=\"t-b\">MgH₂ estable<\/text><text x=\"161.1\" y=\"102.5\" text-anchor=\"start\" class=\"t-s\">hidruración: DESCARGA (exotérmica)<\/text><text x=\"352.4\" y=\"212.5\" text-anchor=\"start\" class=\"t-b\">Mg + H₂<\/text><text x=\"281.4\" y=\"231.2\" text-anchor=\"start\" class=\"t-s\">deshidruración: CARGA (endotérmica)<\/text><text x=\"365.2\" y=\"69.5\" text-anchor=\"start\" class=\"t-s\">p_eq(T)<\/text><\/svg>", "ragone": "<svg viewBox=\"0 0 540 290\" role=\"img\" aria-label=\"Mapa potencia-tiempo de descarga de tecnologías de almacenamiento\"><defs><marker id=\"ar\" viewBox=\"0 0 10 10\" refX=\"9\" refY=\"5\" markerWidth=\"7\" markerHeight=\"7\" orient=\"auto-start-reverse\"><path d=\"M0,0 L10,5 L0,10 z\" class=\"arh\"/><\/marker><\/defs><line class=\"grid\" x1=\"80.0\" y1=\"240.0\" x2=\"80.0\" y2=\"20.0\"/><text x=\"80.0\" y=\"256.0\" text-anchor=\"middle\" class=\"t-s\">1 kW<\/text><line class=\"grid\" x1=\"260.0\" y1=\"240.0\" x2=\"260.0\" y2=\"20.0\"/><text x=\"260.0\" y=\"256.0\" text-anchor=\"middle\" class=\"t-s\">1 MW<\/text><line class=\"grid\" x1=\"440.0\" y1=\"240.0\" x2=\"440.0\" y2=\"20.0\"/><text x=\"440.0\" y=\"256.0\" text-anchor=\"middle\" class=\"t-s\">1 GW<\/text><line class=\"grid\" x1=\"80.0\" y1=\"208.6\" x2=\"500.0\" y2=\"208.6\"/><text x=\"74.0\" y=\"212.6\" text-anchor=\"end\" class=\"t-s\">1 s<\/text><line class=\"grid\" x1=\"80.0\" y1=\"152.7\" x2=\"500.0\" y2=\"152.7\"/><text x=\"74.0\" y=\"156.7\" text-anchor=\"end\" class=\"t-s\">1 min<\/text><line class=\"grid\" x1=\"80.0\" y1=\"96.8\" x2=\"500.0\" y2=\"96.8\"/><text x=\"74.0\" y=\"100.8\" text-anchor=\"end\" class=\"t-s\">1 h<\/text><line class=\"grid\" x1=\"80.0\" y1=\"53.4\" x2=\"500.0\" y2=\"53.4\"/><text x=\"74.0\" y=\"57.4\" text-anchor=\"end\" class=\"t-s\">1 día<\/text><line class=\"ax\" x1=\"80.0\" y1=\"240.0\" x2=\"500.0\" y2=\"240.0\"/><line class=\"ax\" x1=\"80.0\" y1=\"240.0\" x2=\"80.0\" y2=\"20.0\"/><text x=\"290.0\" y=\"274.0\" text-anchor=\"middle\">Potencia<\/text><text x=\"38\" y=\"130.0\" text-anchor=\"middle\" transform=\"rotate(-90 38 130.0)\">Tiempo de descarga<\/text><rect class=\"bfl\" x=\"80.0\" y=\"177.1\" width=\"180.0\" height=\"62.9\" rx=\"6\"/><text x=\"85.0\" y=\"191.1\" text-anchor=\"start\" class=\"t-b\">Supercondensadores<\/text><rect class=\"ofl\" x=\"140.0\" y=\"137.7\" width=\"198.1\" height=\"48.9\" rx=\"6\"/><text x=\"145.0\" y=\"151.7\" text-anchor=\"start\" class=\"t-b\">Volantes<\/text><rect class=\"bfl\" x=\"80.0\" y=\"77.9\" width=\"328.6\" height=\"43.4\" rx=\"6\"/><text x=\"85.0\" y=\"91.9\" text-anchor=\"start\" class=\"t-b\">Baterías<\/text><rect class=\"ofl\" x=\"320.0\" y=\"52.9\" width=\"120.0\" height=\"28.9\" rx=\"6\"/><text x=\"325.0\" y=\"66.9\" text-anchor=\"start\" class=\"t-b\">CAES / LAES<\/text><rect class=\"bfl\" x=\"380.0\" y=\"31.5\" width=\"88.6\" height=\"43.3\" rx=\"6\"/><text x=\"385.0\" y=\"45.5\" text-anchor=\"start\" class=\"t-b\">Bombeo<\/text><\/svg>", "thermocline": "<svg viewBox=\"0 0 540 270\" role=\"img\" aria-label=\"Perfiles de temperatura en un tanque termoclino\"><defs><marker id=\"ar\" viewBox=\"0 0 10 10\" refX=\"9\" refY=\"5\" markerWidth=\"7\" markerHeight=\"7\" orient=\"auto-start-reverse\"><path d=\"M0,0 L10,5 L0,10 z\" class=\"arh\"/><\/marker><\/defs><line class=\"ax\" x1=\"50.0\" y1=\"220.0\" x2=\"170.0\" y2=\"220.0\"/><line class=\"ax\" x1=\"50.0\" y1=\"220.0\" x2=\"50.0\" y2=\"30.0\"/><text x=\"110.0\" y=\"236.0\" text-anchor=\"middle\" class=\"t-s\">T<\/text><text x=\"42.0\" y=\"125.0\" text-anchor=\"end\" class=\"t-s\">h<\/text><polyline class=\"b\" points=\"54.0,220.0 54.0,92.7 164.0,62.3 164.0,30.0\"/><rect class=\"ofl\" x=\"52.0\" y=\"62.3\" width=\"118.0\" height=\"30.4\" rx=\"0\"/><text x=\"110.0\" y=\"254.0\" text-anchor=\"middle\" class=\"t-b\">Perfil A<\/text><line class=\"ax\" x1=\"225.0\" y1=\"220.0\" x2=\"345.0\" y2=\"220.0\"/><line class=\"ax\" x1=\"225.0\" y1=\"220.0\" x2=\"225.0\" y2=\"30.0\"/><text x=\"285.0\" y=\"236.0\" text-anchor=\"middle\" class=\"t-s\">T<\/text><text x=\"217.0\" y=\"125.0\" text-anchor=\"end\" class=\"t-s\">h<\/text><polyline class=\"b\" points=\"229.0,220.0 229.0,149.7 339.0,119.3 339.0,30.0\"/><rect class=\"ofl\" x=\"227.0\" y=\"119.3\" width=\"118.0\" height=\"30.4\" rx=\"0\"/><text x=\"285.0\" y=\"254.0\" text-anchor=\"middle\" class=\"t-b\">Perfil B<\/text><line class=\"ax\" x1=\"400.0\" y1=\"220.0\" x2=\"520.0\" y2=\"220.0\"/><line class=\"ax\" x1=\"400.0\" y1=\"220.0\" x2=\"400.0\" y2=\"30.0\"/><text x=\"460.0\" y=\"236.0\" text-anchor=\"middle\" class=\"t-s\">T<\/text><text x=\"392.0\" y=\"125.0\" text-anchor=\"end\" class=\"t-s\">h<\/text><polyline class=\"b\" points=\"404.0,220.0 404.0,212.4 514.0,182.0 514.0,30.0\"/><rect class=\"ofl\" x=\"402.0\" y=\"182.0\" width=\"118.0\" height=\"30.4\" rx=\"0\"/><text x=\"460.0\" y=\"254.0\" text-anchor=\"middle\" class=\"t-b\">Perfil C<\/text><text x=\"270.0\" y=\"16.0\" text-anchor=\"middle\" class=\"t-s\">Temperatura (290 → 565 ºC) frente a altura del tanque; franja naranja = zona termoclina<\/text><\/svg>"};
+const KEY = "es-test-2627-v2";
+
+const store = {
+  get() { try { return JSON.parse(localStorage.getItem(KEY) || "null"); } catch (e) { return null; } },
+  set(v) { try { localStorage.setItem(KEY, JSON.stringify(v)); } catch (e) {} }
+};
+const saved = store.get() || {};
+const S = {
+  view: saved.view || "exam",
+  examId: saved.examId || EXAMS[0].id,
+  block: saved.block || "all",
+  size: saved.size || "all",
+  mode: saved.mode || "study",
+  pen: !!saved.pen,
+  onlyWrong: false,
+  onlyMiss: false,
+  hist: saved.hist || {},          // índice → {ok, ko}
+  sessions: saved.sessions || {}   // clave → {order, perms, answers, graded, start, end}
+};
+function persist() {
+  store.set({ view: S.view, examId: S.examId, block: S.block, size: S.size, mode: S.mode, pen: S.pen, hist: S.hist, sessions: S.sessions });
+}
+const shuffle = a => { for (let i = a.length - 1; i > 0; i--) { const j = Math.floor(Math.random() * (i + 1)); [a[i], a[j]] = [a[j], a[i]]; } return a; };
+const esc = s => String(s).replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;");
+const blockOf = id => BLOCKS.find(b => b.id === id) || { short: id, name: id };
+const examOf = id => EXAMS.find(e => e.id === id) || EXAMS[0];
+
+function poolFor(view, examId, block) {
+  if (view === "exam") return QS.map((_, i) => i).filter(i => QS[i].x.includes(examId));
+  return QS.map((_, i) => i).filter(i => block === "all" || QS[i].b === block);
+}
+function sessionKey() { return S.view === "exam" ? "ex:" + S.examId + ":" + S.size : "tp:" + S.block; }
+function newSession() {
+  let pool = poolFor(S.view, S.examId, S.block);
+  pool = S.view === "exam" ? shuffle(pool.slice()) : pool;
+  if (S.view === "exam" && S.size !== "all") pool = pool.slice(0, +S.size);
+  const perms = {};
+  pool.forEach(i => perms[i] = shuffle(QS[i].o.map((_, k) => k)));
+  return { order: pool, perms, answers: {}, graded: false, start: Date.now(), end: null, mode: S.mode };
+}
+function sess() {
+  const k = sessionKey();
+  let s = S.sessions[k];
+  const valid = s && Array.isArray(s.order) && s.order.every(i => QS[i]) && s.order.every(i => s.perms && s.perms[i]);
+  if (!valid) { s = S.sessions[k] = newSession(); persist(); }
+  return s;
+}
+function revealed(s, i) { return s.mode === "study" ? s.answers[i] !== undefined : s.graded; }
+function isRight(i, s) { return s.answers[i] === QS[i].a; }
+function recordHist(i, ok) { const h = S.hist[i] || { ok: 0, ko: 0 }; ok ? h.ok++ : h.ko++; S.hist[i] = h; }
+
+function renderSetup() {
+  const el = document.getElementById("setup");
+  document.getElementById("tabExam").setAttribute("aria-selected", S.view === "exam");
+  document.getElementById("tabTopic").setAttribute("aria-selected", S.view === "topic");
+  let html = "";
+  if (S.view === "exam") {
+    html += `<div class="panel" style="margin-top:18px"><h2>Elige el examen</h2><p class="hint">Se mezclan al azar las preguntas de todos los temas que entran en cada examen; cada intento cambia el orden de preguntas y respuestas.</p><div class="exams">`;
+    EXAMS.forEach(e => {
+      const eq = QS.filter(q => q.x.includes(e.id)); const n = eq.length; const nb = new Set(eq.map(q => q.b)).size;
+      html += `<button type="button" class="exam" data-ex="${e.id}" aria-pressed="${e.id === S.examId}"><span class="d">${esc(e.date)}</span><h2>${esc(e.name)}</h2><span>${esc(e.desc)}</span><span class="w">Peso: ${esc(e.weight)}</span><span class="n">${n} preguntas · ${nb} temas</span></button>`;
+    });
+    html += `</div><div class="row"><label class="label" for="selSize">Preguntas por intento</label><select id="selSize">${["10", "20", "30", "all"].map(v => `<option value="${v}" ${S.size === v ? "selected" : ""}>${v === "all" ? "Todas" : v}</option>`).join("")}</select></div></div>`;
+  } else {
+    html += `<div class="panel" style="margin-top:18px"><h2>Elige el tema</h2><div class="row">`;
+    html += `<button type="button" class="chip" data-b="all" aria-pressed="${S.block === "all"}">Todos</button>`;
+    BLOCKS.forEach(b => html += `<button type="button" class="chip" data-b="${b.id}" aria-pressed="${S.block === b.id}">${esc(b.short)}</button>`);
+    html += `</div></div>`;
+  }
+  html += `<div class="panel" style="margin-top:12px"><h2>Aciertos por tema en este intento</h2><div class="blocks" id="blocks"></div></div>`;
+  el.innerHTML = html;
+  el.querySelectorAll(".exam").forEach(b => b.onclick = () => { S.examId = b.dataset.ex; S.onlyWrong = false; persist(); renderAll(); });
+  const sel = el.querySelector("#selSize"); if (sel) sel.onchange = () => { S.size = sel.value; persist(); renderAll(); };
+  el.querySelectorAll(".chip").forEach(c => c.onclick = () => { S.block = c.dataset.b; S.onlyWrong = false; persist(); renderAll(); });
+}
+
+function computeScore(s) {
+  const n = s.order.length;
+  const answered = s.order.filter(i => s.answers[i] !== undefined);
+  const shown = s.mode === "study" || s.graded;
+  const ok = answered.filter(i => isRight(i, s)).length;
+  const ko = answered.length - ok;
+  let nota = null;
+  if (shown && answered.length) nota = Math.max(0, 10 * (ok - (S.pen ? ko / 3 : 0)) / n);
+  return { n, answered: answered.length, ok, ko, shown, nota };
+}
+
+function renderScore(s) {
+  const c = computeScore(s);
+  document.getElementById("sAns").textContent = c.answered + "/" + c.n;
+  document.getElementById("sOk").textContent = c.shown ? c.ok + " / " + c.ko : "–";
+  document.getElementById("sPct").textContent = c.nota === null ? "–" : c.nota.toFixed(1).replace(".", ",");
+  document.getElementById("sPctLbl").textContent = S.pen ? "Nota /10 (con penalización)" : "Nota /10 (en blanco = 0)";
+  document.getElementById("prog").style.width = (c.n ? 100 * c.answered / c.n : 0) + "%";
+  const bl = document.getElementById("blocks"); if (!bl) return;
+  bl.innerHTML = "";
+  const ids = [...new Set(s.order.map(i => QS[i].b))];
+  BLOCKS.filter(b => ids.includes(b.id)).forEach(b => {
+    const qs = s.order.filter(i => QS[i].b === b.id);
+    const k = qs.filter(i => s.answers[i] !== undefined && isRight(i, s)).length;
+    const a = qs.filter(i => s.answers[i] !== undefined).length;
+    const row = document.createElement("div"); row.className = "brow";
+    row.innerHTML = `<span class="name">${esc(b.name)}</span><span class="num">${c.shown ? k : a}/${qs.length}</span><span class="meter"><i style="width:${qs.length ? 100 * (c.shown ? k : a) / qs.length : 0}%"></i></span>`;
+    bl.appendChild(row);
+  });
+}
+
+function renderBanner(s) {
+  const b = document.getElementById("banner");
+  if (S.view === "exam") {
+    const e = examOf(S.examId);
+    b.innerHTML = `<span><b>${esc(e.name)}</b> · ${s.order.length} preguntas mezcladas de ${new Set(s.order.map(i => QS[i].b)).size} temas · corrección ${s.mode === "study" ? "al momento" : "al final"}</span><span class="label">${esc(e.date)}</span>`;
+  } else {
+    const nm = S.block === "all" ? "Todos los temas" : blockOf(S.block).name;
+    b.innerHTML = `<span><b>${esc(nm)}</b> · ${s.order.length} preguntas en orden del temario · corrección ${s.mode === "study" ? "al momento" : "al final"}</span>`;
+  }
+}
+
+function renderList(s) {
+  const list = document.getElementById("list"); list.innerHTML = "";
+  let n = 0;
+  s.order.forEach((i, pos) => {
+    const q = QS[i];
+    const rev = revealed(s, i), chosen = s.answers[i];
+    if (S.onlyWrong && !(chosen !== undefined && rev && !isRight(i, s))) return;
+    if (S.onlyMiss && !((S.hist[i] || {}).ko > 0)) return;
+    n++;
+    const card = document.createElement("article");
+    card.className = "card" + (rev ? (chosen === undefined ? " pending" : (isRight(i, s) ? " ok" : " bad")) : "");
+    card.tabIndex = 0; card.dataset.i = i; card.id = "q" + i;
+    const h = S.hist[i];
+    let html = `<div class="meta"><span class="qnum" aria-label="Pregunta ${pos + 1} de ${s.order.length}">${pos + 1}<small>/${s.order.length}</small></span><span class="tag">${esc(blockOf(q.b).short)}</span>${q.p ? `<span class="tag star" title="Marcado como prioritario en los apuntes de la PEC">★ PEC</span>` : ""}${h && h.ko ? `<span class="tag miss">Fallada ${h.ko} ${h.ko === 1 ? "vez" : "veces"}</span>` : ""}</div><p class="q">${q.q}</p>`;
+    if (q.d && DIAG[q.d]) html += `<figure class="fig">${DIAG[q.d]}${q.fc ? `<figcaption>${esc(q.fc)}</figcaption>` : ""}</figure>`;
+    html += `<div class="opts">`;
+    s.perms[i].forEach((k, p) => {
+      let cls = "opt";
+      if (rev) { if (k === q.a) cls += " right"; else if (k === chosen) cls += " wrong"; }
+      else if (k === chosen) cls += " sel";
+      html += `<button type="button" class="${cls}" data-i="${i}" data-k="${k}" ${rev ? "disabled" : ""}><span class="k">${"ABCD"[p]}</span><span>${q.o[k]}</span></button>`;
+    });
+    html += `</div>`;
+    if (rev) {
+      const v = chosen === undefined ? `<span class="verdict na">Sin responder.</span>` : isRight(i, s) ? `<span class="verdict ok">Correcta.</span>` : `<span class="verdict bad">Incorrecta.</span>`;
+      html += `<div class="exp">${v} ${q.e}<span class="src">Fuente: ${esc(q.s)}</span></div>`;
+    }
+    card.innerHTML = html;
+    list.appendChild(card);
+  });
+  if (!n) list.innerHTML = `<p class="empty">${S.onlyWrong ? "No hay preguntas falladas en este intento." : S.onlyMiss ? "Aún no has fallado ninguna pregunta de esta selección." : "No hay preguntas en esta selección."}</p>`;
+}
+
+function renderControls(s) {
+  document.getElementById("mStudy").setAttribute("aria-pressed", s.mode === "study");
+  document.getElementById("mExam").setAttribute("aria-pressed", s.mode === "exam");
+  document.getElementById("bPen").setAttribute("aria-pressed", S.pen);
+  document.getElementById("bWrong").setAttribute("aria-pressed", S.onlyWrong);
+  document.getElementById("bMiss").setAttribute("aria-pressed", S.onlyMiss);
+  const g = document.getElementById("bGrade");
+  g.hidden = !(s.mode === "exam" && !s.graded);
+  const left = s.order.filter(i => s.answers[i] === undefined).length;
+  g.textContent = left ? `Corregir (${left} sin responder)` : "Corregir";
+}
+
+function renderAll() {
+  const s = sess();
+  renderSetup(); renderBanner(s); renderList(s); renderControls(s); renderScore(s); tick();
+}
+function refresh() { const s = sess(); renderList(s); renderControls(s); renderScore(s); }
+
+function answer(i, k) {
+  const s = sess();
+  if (revealed(s, i)) return;
+  s.answers[i] = k;
+  if (s.mode === "study") recordHist(i, k === QS[i].a);
+  if (s.mode === "study" && s.order.every(j => s.answers[j] !== undefined)) s.end = Date.now();
+  persist();
+  const y = window.scrollY; refresh(); window.scrollTo(0, y);
+  const c = document.getElementById("q" + i); if (c) c.focus({ preventScroll: true });
+}
+
+function tick() {
+  const s = sess();
+  const end = s.end || Date.now();
+  const sec = Math.max(0, Math.floor((end - s.start) / 1000));
+  const m = Math.floor(sec / 60), r = sec % 60;
+  document.getElementById("sTime").textContent = (m >= 100 ? m : String(m).padStart(2, "0")) + ":" + String(r).padStart(2, "0");
+}
+setInterval(tick, 1000);
+
+document.getElementById("list").addEventListener("click", e => {
+  const b = e.target.closest(".opt"); if (!b || b.disabled) return;
+  answer(+b.dataset.i, +b.dataset.k);
+});
+document.getElementById("list").addEventListener("keydown", e => {
+  const card = e.target.closest(".card"); if (!card) return;
+  const map = { "1": 0, "2": 1, "3": 2, "4": 3, a: 0, b: 1, c: 2, d: 3 };
+  const p = map[e.key.toLowerCase()]; if (p === undefined) return;
+  const i = +card.dataset.i, s = sess();
+  if (s.perms[i] && s.perms[i][p] !== undefined) { e.preventDefault(); answer(i, s.perms[i][p]); }
+});
+document.getElementById("tabExam").onclick = () => { S.view = "exam"; S.onlyWrong = false; persist(); renderAll(); };
+document.getElementById("tabTopic").onclick = () => { S.view = "topic"; S.onlyWrong = false; persist(); renderAll(); };
+function setMode(m) {
+  S.mode = m; const s = sess();
+  if (s.mode === m) return;
+  const started = Object.keys(s.answers).length > 0;
+  if (started) { S.sessions[sessionKey()] = newSession(); } else { s.mode = m; }
+  persist(); renderAll();
+}
+document.getElementById("mStudy").onclick = () => setMode("study");
+document.getElementById("mExam").onclick = () => setMode("exam");
+document.getElementById("bPen").onclick = () => { S.pen = !S.pen; persist(); refresh(); };
+document.getElementById("bWrong").onclick = () => { S.onlyWrong = !S.onlyWrong; if (S.onlyWrong) S.onlyMiss = false; refresh(); };
+document.getElementById("bMiss").onclick = () => { S.onlyMiss = !S.onlyMiss; if (S.onlyMiss) S.onlyWrong = false; refresh(); };
+document.getElementById("bNext").onclick = () => {
+  const s = sess();
+  const i = s.order.find(i => s.answers[i] === undefined);
+  const c = i !== undefined && document.getElementById("q" + i);
+  if (c) { c.scrollIntoView({ behavior: "smooth", block: "start" }); c.focus({ preventScroll: true }); }
+};
+document.getElementById("bGrade").onclick = () => {
+  const s = sess(); s.graded = true; s.end = Date.now();
+  s.order.forEach(i => { if (s.answers[i] !== undefined) recordHist(i, isRight(i, s)); });
+  persist(); refresh(); tick(); window.scrollTo({ top: 0 });
+};
+document.getElementById("bRestart").onclick = () => {
+  S.sessions[sessionKey()] = newSession(); S.onlyWrong = false; persist(); renderAll(); window.scrollTo({ top: 0 });
+};
+document.getElementById("bClearHist").onclick = () => { S.hist = {}; S.onlyMiss = false; persist(); refresh(); };
+renderAll();
+</script>
+</body>
+</html>
